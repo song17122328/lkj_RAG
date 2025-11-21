@@ -80,7 +80,32 @@ class Retriever:
             if hasattr(doc, 'metadata') and 'source' in doc.metadata:
                 source = doc.metadata['source']
                 filename = os.path.basename(source)
+                # 移除旧的MinerU_前缀（如果存在）
+                filename = re.sub(r'^MinerU_', '', filename)
                 files.add(filename)
+
+        # 如果documents为空，尝试从vectorstore中提取
+        if not files and self.vectorstore:
+            try:
+                logger.info("documents为空，尝试从vectorstore中提取可用文件...")
+                # 从vectorstore获取所有文档（使用一个通用查询）
+                # ChromaDB没有直接获取所有文档的方法，我们使用get()方法
+                if hasattr(self.vectorstore, '_collection'):
+                    # ChromaDB的内部collection对象
+                    collection = self.vectorstore._collection
+                    # 获取所有文档的metadata
+                    result = collection.get(include=['metadatas'])
+                    if result and 'metadatas' in result:
+                        for metadata in result['metadatas']:
+                            if metadata and 'source' in metadata:
+                                source = metadata['source']
+                                filename = os.path.basename(source)
+                                # 移除旧的MinerU_前缀（如果存在）
+                                filename = re.sub(r'^MinerU_', '', filename)
+                                files.add(filename)
+                        logger.info(f"从vectorstore中提取到{len(files)}个文件")
+            except Exception as e:
+                logger.warning(f"从vectorstore提取文件失败: {e}")
 
         # 转换为排序列表
         return sorted(list(files))
