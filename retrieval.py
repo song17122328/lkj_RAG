@@ -288,33 +288,31 @@ class Retriever:
             return []
 
         try:
-            # 构造提示词，要求LLM识别问题中提到的文件、文档或标准
-            prompt = f"""**任务：** 从以下问题中提取文件名、文档名、报告名或标准编号。
+            # 构造简洁明确的提示词
+            prompt = f"""从问题中提取文件名、文档名、报告名或标准编号。
 
-**问题：** {query}
+问题：{query}
 
-**要求：**
-1. 识别问题中明确提到的文件、文档、报告、标准
-2. 注意关键词："在...报告里"、"根据文档"、"标准"、"规范"等
-3. 如果问题没有明确提到任何文件，直接返回"无"
-4. 只返回文件名，每行一个，不要解释
+要求：只提取明确提到的文件名，每行一个，不要解释。如果没有提到文件，返回"无"。
 
-**格式：**
-```
-文件名1
-文件名2
-```
+输出格式示例：
+UIC报告
+IEEE 1474.1
 
-**回答：**"""
+请输出："""
 
-            # 调用LLM
+            # 调用LLM（降低temperature以获得更确定的输出）
             from langchain.schema import HumanMessage
 
             # 根据不同的LLM类型调用
             try:
                 if hasattr(self.llm, 'invoke'):
-                    # 新版LangChain API
-                    response = self.llm.invoke(prompt)
+                    # 新版LangChain API - 尝试设置temperature
+                    try:
+                        response = self.llm.invoke(prompt, temperature=0)
+                    except:
+                        response = self.llm.invoke(prompt)
+
                     if hasattr(response, 'content'):
                         llm_output = response.content
                     else:
@@ -330,7 +328,11 @@ class Retriever:
                 llm_output = str(self.llm(prompt))
 
             # 从LLM输出中提取文件名
-            # 移除可能的代码块标记
+            # 1. 移除<think>标签及其内容（推理模型的思考过程）
+            llm_output = re.sub(r'<think>.*?</think>', '', llm_output, flags=re.DOTALL | re.IGNORECASE)
+            llm_output = re.sub(r'</think>.*$', '', llm_output, flags=re.DOTALL | re.IGNORECASE)
+
+            # 2. 移除代码块标记
             llm_output = re.sub(r'```.*?```', lambda m: m.group(0).replace('```', ''), llm_output, flags=re.DOTALL)
             llm_output = llm_output.replace('```', '')
 
@@ -339,17 +341,33 @@ class Retriever:
 
             for line in lines:
                 line = line.strip()
-                # 跳过空行、"无"、"没有"等
-                if not line or line in ['无', '没有', 'None', 'N/A', '无明确文件', '回答：', '**回答：**']:
+
+                # 跳过空行和特殊标记
+                if not line or line in ['无', '没有', 'None', 'N/A', '无明确文件', '回答：', '**回答：**', '输出：', '请输出：']:
                     continue
+
+                # 跳过明显的完整句子（包含多个标点符号或过长）
+                if line.count('。') > 1 or line.count('，') > 2 or line.count('？') > 0 or line.count('！') > 0:
+                    continue
+
+                # 跳过包含"好"、"首先"、"接下来"等开头的思考过程
+                if line.startswith(('好', '首先', '接下来', '然后', '最后', '因此', '所以')):
+                    continue
+
+                # 跳过过长的行（文件名不应该超过50个字符）
+                if len(line) > 50:
+                    continue
+
                 # 移除序号（如"1. "、"- "、"* "等）
                 line = re.sub(r'^[\d\.\-\*\s]+', '', line)
                 line = line.strip()
+
                 # 移除markdown格式标记
                 line = re.sub(r'^\*\*|^\*|^-', '', line)
                 line = line.strip()
 
-                if len(line) >= 3:  # 至少3个字符
+                # 最终验证：长度合理（3-50字符）且不包含问句标记
+                if 3 <= len(line) <= 50 and '？' not in line and '为什么' not in line and '如何' not in line:
                     file_names.append(line)
 
             logger.info(f"LLM提取文件名: {file_names}")
@@ -495,9 +513,11 @@ class Retriever:
 
         # ========== 输出提取的文件名并验证存在性 ==========
         print(f"\n{'='*60}")
-        print(f"[文件名提取] 从问题中提取到 {len(extracted_names)} 个文件名:")
+        print(f"[文件名提取] 提取到 {len(extracted_names)} 个文件名:")
         for i, name in enumerate(extracted_names, 1):
-            print(f"  {i}. {name}")
+            # 截断过长的文件名以便显示
+            display_name = name if len(name) <= 40 else name[:37] + '...'
+            print(f"  {i}. {display_name}")
 
         # 收集所有文档的source路径用于验证
         all_sources = set()
@@ -507,8 +527,10 @@ class Retriever:
                 all_sources.add(source)
 
         # 验证每个提取的文件名是否在文档库中存在
-        print(f"\n[文件验证] 检查文件是否存在于文档库:")
+        print(f"\n[文件验证] 在文档库中匹配结果:")
         verified_names = []
+        match_details = []
+
         for name in extracted_names:
             exists = False
             matched_source = None
@@ -533,12 +555,20 @@ class Retriever:
                     break
 
             if exists:
-                print(f"  ✓ '{name}' -> 找到: {matched_source}")
+                # 只显示文件名，不显示完整路径
+                import os
+                file_name = os.path.basename(matched_source)
+                print(f"  ✓ '{name}' -> {file_name}")
                 verified_names.append(name)
+                match_details.append((name, matched_source))
             else:
-                print(f"  ✗ '{name}' -> 未找到匹配文档")
+                print(f"  ✗ '{name}' -> 未找到")
 
-        print(f"\n[匹配结果] 验证通过: {len(verified_names)}/{len(extracted_names)} 个文件")
+        # 简洁的匹配结果摘要
+        if verified_names:
+            print(f"\n[✓ 成功] 匹配到 {len(verified_names)}/{len(extracted_names)} 个文件")
+        else:
+            print(f"\n[✗ 失败] 未匹配到任何文件 (共{len(extracted_names)}个)")
         print(f"{'='*60}\n")
         # ========== 验证完成 ==========
 
