@@ -7,7 +7,6 @@
 from typing import List, Dict, Any, Tuple, Optional
 import logging
 import networkx as nx
-import matplotlib.pyplot as plt
 import spacy
 
 try:
@@ -15,8 +14,6 @@ try:
 except ImportError:
     logger.warning("langdetect未安装，将使用默认语言。建议安装: pip install langdetect")
     detect = None
-
-from pyvis.network import Network
 
 # 设置日志
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -238,52 +235,4 @@ class KnowledgeGraphBuilder:
             chunks.append(text[i:i+chunk_size])
         return chunks
     
-    def visualize_graph(self, output_path: str = "knowledge_graph.html"):
-        """可视化知识图谱"""
-        if len(self.graph.nodes) == 0:
-            logger.warning("图谱为空，无法可视化")
-            return
-            
-        # 创建交互式网络图
-        net = Network(height="750px", width="100%", bgcolor="#222222", font_color="white")
-        
-        # 添加节点和边
-        for node, attrs in self.graph.nodes(data=True):
-            net.add_node(node, label=node, title=f"Type: {attrs.get('label', 'Unknown')}")
-        
-        for edge in self.graph.edges(data=True):
-            net.add_edge(edge[0], edge[1], title=edge[2].get('relation', ''))
-        
-        # 保存HTML文件
-        net.save_graph(output_path)
-        logger.info(f"知识图谱可视化已保存: {output_path}")
-        
-        # 同时生成静态图片
-        self._save_static_graph()
-    
-    def _save_static_graph(self, output_path: str = "knowledge_graph.png"):
-        """保存静态图片版本的知识图谱"""
-        if len(self.graph.nodes) > 100:
-            logger.warning("节点过多，跳过静态图生成")
-            return
-            
-        plt.figure(figsize=(20, 15))
-        pos = nx.spring_layout(self.graph, k=2, iterations=50)
-        
-        # 绘制节点和边
-        nx.draw_networkx_nodes(self.graph, pos, node_size=500, node_color='lightblue')
-        nx.draw_networkx_labels(self.graph, pos, font_size=8)
-        nx.draw_networkx_edges(self.graph, pos, edge_color='gray', arrows=True, arrowsize=20)
-        
-        # 绘制边标签
-        edge_labels = nx.get_edge_attributes(self.graph, 'relation')
-        nx.draw_networkx_edge_labels(self.graph, pos, edge_labels, font_size=6)
-        
-        plt.title("Knowledge Graph")
-        plt.axis('off')
-        plt.tight_layout()
-        plt.savefig(output_path, dpi=150, bbox_inches='tight')
-        plt.close()
-        
-        logger.info(f"静态知识图谱已保存: {output_path}")
 

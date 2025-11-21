@@ -138,7 +138,6 @@ class CompleteRAGPipeline:
         # Step 1: 构建知识图谱
         logger.info("Step 1: 构建知识图谱...")
         self.knowledge_graph = self.kg_builder.build_graph_from_documents(self.markdown_contents)
-        self.kg_builder.visualize_graph("knowledge_graph.html")
         
         # Step 2: 创建RAG系统
         logger.info("Step 2: 设置RAG系统...")
