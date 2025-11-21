@@ -5,6 +5,7 @@ RAG + 知识图谱系统主程序
 
 import json
 from pathlib import Path
+from datetime import datetime
 from pipeline import CompleteRAGPipeline
 
 
@@ -60,7 +61,7 @@ def main():
         result = pipeline.answer_question(question)
         contexts = []
         source_docs = result.get("source_documents") or []
-        for doc in source_docs[:2]:
+        for doc in source_docs:
             page_content = getattr(doc, "page_content", None)
             if page_content:
                 contexts.append(page_content)
@@ -72,6 +73,20 @@ def main():
     
     output = {"items": items}
     print(json.dumps(output, ensure_ascii=False, indent=2))
+    
+    # 保存JSON文件到output目录
+    output_dir = Path(__file__).resolve().parent / "output"
+    output_dir.mkdir(exist_ok=True)
+    
+    # 生成带时间戳的文件名
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_file = output_dir / f"output_{timestamp}.json"
+    
+    # 保存JSON文件
+    with open(output_file, 'w', encoding='utf-8') as f:
+        json.dump(output, f, ensure_ascii=False, indent=2)
+    
+    print(f"\n结果已保存到: {output_file}")
     
     # 启动交互式问答
     # pipeline.interactive_qa()

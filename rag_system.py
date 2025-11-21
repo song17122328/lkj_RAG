@@ -24,7 +24,7 @@ from langchain.embeddings import OpenAIEmbeddings, HuggingFaceEmbeddings
 from langchain.vectorstores import Chroma
 from langchain.chains import RetrievalQA
 from langchain.prompts import PromptTemplate
-from langchain.schema import Document
+from langchain.schema import Document, BaseRetriever
 
 # LLM模型
 # 兼容新旧版本的langchain导入
@@ -239,27 +239,33 @@ class RAGSystem:
         use_advanced = ADVANCED_FEATURES.get("hybrid_search", False) or ADVANCED_FEATURES.get("reranking", False)
 
         if use_advanced:
-            # 使用增强检索器
+            # 使用检索器
             try:
-                from rag_enhanced import create_enhanced_retriever
-                enhanced_retriever = create_enhanced_retriever(
+                from retrieval import Retriever
+                retriever_instance = Retriever(
                     vectorstore=self.vectorstore,
-                    documents=self.documents
+                    documents=self.documents,
+                    k=k
                 )
 
                 # 创建自定义检索器包装
-                class CustomRetriever:
-                    def __init__(self, enhanced_ret, k):
-                        self.enhanced_ret = enhanced_ret
+                class CustomRetriever(BaseRetriever):
+                    def __init__(self, ret, k):
+                        super().__init__()
+                        self.ret = ret
                         self.k = k
 
-                    def get_relevant_documents(self, query):
-                        return self.enhanced_ret.retrieve(query, k=self.k)
+                    def get_relevant_documents(self, query: str) -> List[Document]:
+                        return self.ret.retrieve(query, k=self.k)
+                    
+                    async def aget_relevant_documents(self, query: str) -> List[Document]:
+                        # 异步版本（如果需要）
+                        return self.get_relevant_documents(query)
 
-                retriever = CustomRetriever(enhanced_retriever, k)
-                logger.info(f"已启用增强检索器 (k={k})")
+                retriever = CustomRetriever(retriever_instance, k)
+                logger.info(f"已启用检索器 (k={k})")
             except Exception as e:
-                logger.warning(f"增强检索器初始化失败，使用标准检索器: {e}")
+                logger.warning(f"检索器初始化失败，使用标准检索器: {e}")
                 retriever = self.vectorstore.as_retriever(
                     search_type=search_type,
                     search_kwargs={"k": k}

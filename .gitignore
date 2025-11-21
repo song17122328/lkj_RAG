@@ -1,5 +1,4 @@
 demo_example_provided/
-AI_database_markdown/
 AI_database/
 processed_documents/
 __pycache__/
@@ -7,3 +6,4 @@ __pycache__/
 knowledge_graph.html
 vectorstore/
 lib/
+output/
