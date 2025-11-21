@@ -46,7 +46,7 @@ EMBEDDING_CONFIG = {
     # "model_name": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",  # 原模型（较小）
     # 纯中文模型（仅当文档全为中文时使用）：
     # "model_name": "BAAI/bge-base-zh-v1.5",  # 中文专用
-    "device": "cpu",  # "cuda" for GPU（建议使用GPU加速）
+    "device": "cuda",  # 强烈建议使用 GPU 加速（bge-m3需要GPU以发挥最佳性能）
     "batch_size": 32,
     "normalize": True,
 }
@@ -55,8 +55,8 @@ EMBEDDING_CONFIG = {
 
 # 文本分割配置
 TEXT_SPLITTING = {
-    "chunk_size": 1500,  # 块大小（字符数）- 增加以保留更多上下文
-    "chunk_overlap": 150,  # 块重叠（字符数）- 减少以避免过多重复
+    "chunk_size": 500,  # 块大小（字符数）- 减小以提高精确匹配（专业术语、数字等）
+    "chunk_overlap": 100,  # 块重叠（字符数）- 保持上下文连续性
     "separators": ["\n\n", "\n", "。", "！", "？", ".", "!", "?", " ", ""],
     "length_function": len,
 }
@@ -90,11 +90,11 @@ VECTOR_STORE = {
 # ==================== 检索配置 ====================
 
 RETRIEVAL = {
-    "search_type": "similarity",  # "similarity", "mmr", "similarity_score_threshold"
+    "search_type": "mmr",  # 使用 MMR (Maximum Marginal Relevance) 提高结果多样性
     "k": 10,  # 返回的文档数 - 增加到10以提高召回率
     "score_threshold": 0.3,  # 相似度阈值 - 降低以包含更多候选
-    "fetch_k": 30,  # MMR的初始获取数（仅用于mmr）- 增加候选池
-    "lambda_mult": 0.5,  # MMR的多样性参数（仅用于mmr）
+    "fetch_k": 30,  # MMR的初始获取数 - 先检索30个候选，再选择最多样的10个
+    "lambda_mult": 0.7,  # MMR的多样性参数（0.5-1.0，越大越注重相关性，0.7平衡相关性和多样性）
 }
 
 # ==================== 问答链配置 ====================
