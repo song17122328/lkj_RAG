@@ -490,7 +490,57 @@ class Retriever:
 
         if not extracted_names:
             logger.debug("未从问题中提取到文件名，跳过文件名匹配")
+            print("  [文件名提取] 未提取到文件名")
             return docs
+
+        # ========== 输出提取的文件名并验证存在性 ==========
+        print(f"\n{'='*60}")
+        print(f"[文件名提取] 从问题中提取到 {len(extracted_names)} 个文件名:")
+        for i, name in enumerate(extracted_names, 1):
+            print(f"  {i}. {name}")
+
+        # 收集所有文档的source路径用于验证
+        all_sources = set()
+        for doc in docs:
+            source = doc.metadata.get('source', '')
+            if source:
+                all_sources.add(source)
+
+        # 验证每个提取的文件名是否在文档库中存在
+        print(f"\n[文件验证] 检查文件是否存在于文档库:")
+        verified_names = []
+        for name in extracted_names:
+            exists = False
+            matched_source = None
+
+            # 检查是否有文档source包含这个文件名
+            for source in all_sources:
+                source_lower = source.lower()
+                name_lower = name.lower()
+
+                # 多种匹配方式
+                if name in source or name_lower in source_lower:
+                    exists = True
+                    matched_source = source
+                    break
+
+                # 移除特殊字符后匹配
+                name_clean = name.replace(' ', '').replace('_', '').replace('-', '')
+                source_clean = source.replace(' ', '').replace('_', '').replace('-', '')
+                if len(name_clean) >= 5 and name_clean in source_clean:
+                    exists = True
+                    matched_source = source
+                    break
+
+            if exists:
+                print(f"  ✓ '{name}' -> 找到: {matched_source}")
+                verified_names.append(name)
+            else:
+                print(f"  ✗ '{name}' -> 未找到匹配文档")
+
+        print(f"\n[匹配结果] 验证通过: {len(verified_names)}/{len(extracted_names)} 个文件")
+        print(f"{'='*60}\n")
+        # ========== 验证完成 ==========
 
         # 分类文档：匹配的和不匹配的
         matched_docs = []
