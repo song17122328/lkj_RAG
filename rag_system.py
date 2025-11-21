@@ -1,5 +1,5 @@
 """
-RAG检索增强生成系统
+RAG检索生成系统
 功能：文档向量化、检索和问答生成
 """
 
@@ -45,7 +45,7 @@ logger = logging.getLogger(__name__)
 
 
 class RAGSystem:
-    """RAG检索增强生成系统"""
+    """RAG检索生成系统"""
     
     def __init__(self, 
                  embedding_model: str = "local",
@@ -239,26 +239,16 @@ class RAGSystem:
         use_advanced = ADVANCED_FEATURES.get("hybrid_search", False) or ADVANCED_FEATURES.get("reranking", False)
 
         if use_advanced:
-            # 使用增强版检索器
+            # 使用统一检索入口
             try:
-                # 优先使用增强版检索器
-                try:
-                    from retrieval_enhanced import EnhancedRetriever
-                    retriever_instance = EnhancedRetriever(
-                        vectorstore=self.vectorstore,
-                        documents=self.documents,
-                        k=k
-                    )
-                    logger.info("使用增强版检索器（带去重和多样性约束）")
-                except ImportError:
-                    # 回退到标准检索器
-                    from retrieval import Retriever
-                    retriever_instance = Retriever(
-                        vectorstore=self.vectorstore,
-                        documents=self.documents,
-                        k=k
-                    )
-                    logger.info("使用标准检索器")
+                from retrieval import Retriever
+
+                retriever_instance = Retriever(
+                    vectorstore=self.vectorstore,
+                    documents=self.documents,
+                    k=k
+                )
+                logger.info("使用定制检索器（带去重和多样性约束）")
 
                 # 创建自定义检索器包装
                 class CustomRetriever(BaseRetriever):
@@ -277,7 +267,7 @@ class RAGSystem:
                 retriever = CustomRetriever(retriever_instance, k)
                 logger.info(f"已启用检索器 (k={k})")
             except Exception as e:
-                logger.warning(f"检索器初始化失败，使用标准检索器: {e}")
+                logger.warning(f"高级检索器初始化失败，回退到向量库自带检索: {e}")
                 retriever = self.vectorstore.as_retriever(
                     search_type=search_type,
                     search_kwargs={"k": k}

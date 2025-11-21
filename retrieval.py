@@ -1,13 +1,26 @@
 """
-RAG检索功能
-包含：重排序、混合检索、查询扩展等技术
+RAG 检索模块（唯一实现）
+
+特性：
+- 语义检索 + 关键词检索混合策略
+- 基于内容的去重与多样性控制，减少重复段落
+- 可选的简单重排序，提升相关性
 """
 
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Optional, Any
+from dataclasses import dataclass
 import logging
 import re
 import math
-from langchain.schema import Document
+import hashlib
+
+try:
+    from langchain.schema import Document
+except ImportError:  # pragma: no cover - 环境缺少langchain时的兜底
+    @dataclass
+    class Document:
+        page_content: str
+        metadata: Optional[Dict[str, Any]] = None
 
 # 配置文件
 try:
@@ -19,183 +32,138 @@ logger = logging.getLogger(__name__)
 
 
 class Retriever:
-    """检索器，支持重排序和混合检索"""
+    """支持混合搜索、去重和重排序的检索器"""
 
-    def __init__(self, vectorstore, documents: Optional[List[Document]] = None, 
-                 config: Optional[Dict] = None, k: int = 10):
+    def __init__(self, vectorstore,
+                 documents: Optional[List[Document]] = None,
+                 config: Optional[Dict] = None,
+                 k: int = 10):
         """
-        初始化检索器
-
         Args:
             vectorstore: 向量存储
-            documents: 所有文档列表（可选，用于更好的关键词搜索）
+            documents: 所有文档列表（可选，用于关键词搜索）
             config: 配置字典（可选，默认从 ADVANCED_FEATURES 读取）
-            k: 返回的文档数量
+            k: 默认返回的文档数量
         """
         self.vectorstore = vectorstore
         self.documents = documents or []
         self.config = config if config is not None else ADVANCED_FEATURES
         self.k = k
 
-        # 从配置获取参数
+        # 检索策略配置
         self.use_hybrid = self.config.get("hybrid_search", False)
         self.hybrid_weight = self.config.get("hybrid_weight", 0.3)
         self.use_reranking = self.config.get("reranking", False)
         self.reranking_top_k = self.config.get("reranking_top_k", 20)
 
-        logger.info(f"检索器初始化: hybrid={self.use_hybrid}, reranking={self.use_reranking}, k={k}")
+        # 去重和多样性参数
+        self.similarity_threshold = 0.9  # 内容相似度阈值
+        self.diversity_threshold = 0.3   # 多样性阈值
+
+        logger.info(f"检索器初始化: hybrid={self.use_hybrid}, "
+                    f"reranking={self.use_reranking}, k={k}")
 
     def retrieve(self, query: str, k: Optional[int] = None) -> List[Document]:
-        """
-        执行检索（根据配置自动选择混合搜索或语义搜索）
-
-        Args:
-            query: 查询文本
-            k: 返回文档数（如果为None，使用初始化时的k值）
-
-        Returns:
-            检索到的文档列表
-        """
+        """执行检索并返回文档列表"""
         if k is None:
             k = self.k
 
-        # 如果启用重排序，先检索更多候选
-        retrieve_k = self.reranking_top_k if self.use_reranking else k
+        retrieve_k = self.reranking_top_k if self.use_reranking else k * 3
 
-        # 1. 执行检索
         if self.use_hybrid:
             docs = self.hybrid_search(query, keyword_weight=self.hybrid_weight, k=retrieve_k)
         else:
             docs = self._semantic_search(query, k=retrieve_k)
 
-        # 2. 重排序
+        docs = self._deduplicate_documents(docs)
+        docs = self._ensure_diversity(docs, min_docs=k)
+
         if self.use_reranking and len(docs) > k:
             docs = self._simple_rerank(query, docs, top_k=k)
         else:
             docs = docs[:k]
 
+        logger.info(f"检索完成: 候选={retrieve_k}, 去重后={len(docs)}, 返回={len(docs[:k])}")
         return docs
 
     def _semantic_search(self, query: str, k: int) -> List[Document]:
-        """语义搜索"""
         return self.vectorstore.similarity_search(query, k=k)
 
-    def hybrid_search(self, query: str, keyword_weight: Optional[float] = None, k: Optional[int] = None) -> List[Document]:
-        """
-        混合检索：结合语义搜索和关键词搜索
-
-        Args:
-            query: 查询文本
-            keyword_weight: 关键词搜索的权重（0-1之间，如果为None，使用配置值）
-            k: 返回的文档数量（如果为None，使用初始化时的k值）
-
-        Returns:
-            检索到的文档列表
-        """
+    def hybrid_search(self, query: str,
+                      keyword_weight: Optional[float] = None,
+                      k: Optional[int] = None) -> List[Document]:
+        """语义 + 关键词混合检索"""
         if keyword_weight is None:
             keyword_weight = self.hybrid_weight
         if k is None:
             k = self.k
 
-        # 1. 语义搜索
-        semantic_docs = self.vectorstore.similarity_search_with_score(query, k=k*2)
+        semantic_docs = self.vectorstore.similarity_search_with_score(query, k=k)
+        keyword_docs = self._keyword_search(query, k=k)
 
-        # 2. 关键词匹配（改进版BM25）
-        keyword_docs = self._keyword_search(query, k=k*2)
-
-        # 3. 合并结果并重排序
         merged_docs = self._merge_and_rerank(
             semantic_docs,
             keyword_docs,
             keyword_weight
         )
 
-        return merged_docs[:k]
+        return merged_docs
 
     def _keyword_search(self, query: str, k: int) -> List[tuple]:
-        """
-        改进的关键词搜索
-
-        Args:
-            query: 查询文本
-            k: 返回文档数
-
-        Returns:
-            (文档, 分数)元组列表
-        """
-        # 提取关键词（改进版：过滤停用词）
+        """关键词检索（支持中文及特殊标识符）"""
         keywords = self._extract_keywords(query)
-
         if not keywords:
             return []
 
-        # 如果有文档列表，使用文档列表；否则从向量存储获取
         if self.documents:
             candidate_docs = self.documents
         else:
-            candidate_docs = self.vectorstore.similarity_search(query, k=k*3)
+            candidate_docs = self.vectorstore.similarity_search(query, k=k * 5)
 
-        # 计算关键词匹配分数
         scored_docs = []
         for doc in candidate_docs:
-            score = self._calculate_keyword_score(doc.page_content, keywords)
+            score = self._calculate_keyword_score(doc.page_content, keywords, query)
             if score > 0:
                 scored_docs.append((doc, score))
 
-        # 按分数排序
         scored_docs.sort(key=lambda x: x[1], reverse=True)
-
         return scored_docs[:k]
 
     def _extract_keywords(self, query: str) -> List[str]:
-        """
-        提取查询关键词（改进版：过滤停用词）
+        """提取中文专有名词、数字、英文单词和特殊标识符"""
+        keywords: List[str] = []
 
-        Args:
-            query: 查询文本
+        keywords.extend(re.findall(r'[\u4e00-\u9fa5]{2,}', query))           # 中文词
+        keywords.extend(re.findall(r'\d+(?:\.\d+)?%?', query))               # 数字/百分比
 
-        Returns:
-            关键词列表
-        """
-        # 停用词列表
-        stopwords = {'的', '是', '在', '和', '与', '了', '吗', '呢', '啊', '等',
-                    'the', 'is', 'in', 'and', 'of', 'to', 'a', 'for', 'on', 'at',
-                    'by', 'from', 'with', 'as', 'an', 'be', 'was', 'were', 'been',
-                    'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would',
-                    'should', 'could', 'may', 'might', 'must', 'can'}
+        stopwords = {'the', 'is', 'in', 'and', 'of', 'to', 'a', 'for', 'on', 'at',
+                     'by', 'from', 'with', 'as', 'an', 'be', 'was', 'were', 'been',
+                     'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would',
+                     'should', 'could', 'may', 'might', 'must', 'can'}
+        english_words = re.findall(r'[a-zA-Z]+', query.lower())
+        keywords.extend([w for w in english_words if w not in stopwords and len(w) > 2])
 
-        # 简单分词（按空格和标点分割）
-        words = re.findall(r'\w+', query.lower())
+        keywords.extend(re.findall(r'[A-Z]+[\d/\-\\.]+[\dA-Z]*', query))     # 特殊标识
 
-        # 过滤停用词和短词
-        keywords = [w for w in words if w not in stopwords and len(w) > 1]
-
+        logger.debug(f"提取关键词: {keywords}")
         return keywords
 
-    def _calculate_keyword_score(self, text: str, keywords: List[str]) -> float:
-        """
-        计算关键词匹配分数（改进版：使用TF权重和对数尺度）
-
-        Args:
-            text: 文档文本
-            keywords: 关键词列表
-
-        Returns:
-            匹配分数
-        """
+    def _calculate_keyword_score(self, text: str, keywords: List[str], original_query: str) -> float:
+        """根据匹配程度计算关键词得分"""
         text_lower = text.lower()
         score = 0.0
 
-        for keyword in keywords:
-            # 完整匹配：更高分数
-            if keyword in text_lower:
-                count = text_lower.count(keyword)
-                # TF权重（对数尺度）
-                score += math.log1p(count) * 2.0
+        if original_query.lower() in text_lower or original_query in text:
+            score += 10.0
 
-            # 部分匹配：较低分数
-            elif any(keyword in word for word in text_lower.split()):
-                score += 0.5
+        for keyword in keywords:
+            keyword_lower = keyword.lower()
+            if keyword in text or keyword_lower in text_lower:
+                count = text.count(keyword) + text_lower.count(keyword_lower)
+                score += math.log1p(count) * 3.0
+
+                if re.match(r'\d+', keyword) or re.match(r'[\u4e00-\u9fa5]{3,}', keyword):
+                    score += 2.0
 
         return score
 
@@ -203,92 +171,171 @@ class Retriever:
                           semantic_docs: List[tuple],
                           keyword_docs: List[tuple],
                           keyword_weight: float) -> List[Document]:
-        """
-        合并语义搜索和关键词搜索结果，并重排序
+        """合并语义与关键词得分"""
 
-        Args:
-            semantic_docs: 语义搜索结果 [(doc, score), ...]
-            keyword_docs: 关键词搜索结果 [(doc, score), ...]
-            keyword_weight: 关键词搜索的权重
+        def doc_hash(doc: Document) -> str:
+            content = doc.page_content[:500]
+            return hashlib.md5(content.encode('utf-8')).hexdigest()
 
-        Returns:
-            重排序后的文档列表
-        """
-        # 归一化分数
         def normalize_scores(docs):
             if not docs:
                 return {}
             max_score = max(score for _, score in docs)
             if max_score == 0:
-                return {id(doc): 0.0 for doc, _ in docs}
-            return {id(doc): score/max_score for doc, score in docs}
+                return {}
+            return {doc_hash(doc): score / max_score for doc, score in docs}
 
         semantic_scores = normalize_scores(semantic_docs)
         keyword_scores = normalize_scores(keyword_docs)
 
-        # 合并分数
-        all_doc_ids = set(semantic_scores.keys()) | set(keyword_scores.keys())
-
+        all_doc_hashes = set(semantic_scores.keys()) | set(keyword_scores.keys())
         semantic_weight = 1.0 - keyword_weight
 
         merged_scores = []
         doc_map = {}
 
-        # 构建文档映射
         for doc, _ in semantic_docs:
-            doc_map[id(doc)] = doc
+            doc_map[doc_hash(doc)] = doc
         for doc, _ in keyword_docs:
-            doc_map[id(doc)] = doc
+            h = doc_hash(doc)
+            if h not in doc_map:
+                doc_map[h] = doc
 
-        # 计算合并分数
-        for doc_id in all_doc_ids:
-            semantic_score = semantic_scores.get(doc_id, 0.0)
-            keyword_score = keyword_scores.get(doc_id, 0.0)
+        for doc_h in all_doc_hashes:
+            semantic_score = semantic_scores.get(doc_h, 0.0)
+            keyword_score = keyword_scores.get(doc_h, 0.0)
 
-            final_score = (semantic_score * semantic_weight +
-                          keyword_score * keyword_weight)
+            if keyword_score > 0.7:
+                final_score = semantic_score * 0.3 + keyword_score * 0.7
+            else:
+                final_score = (semantic_score * semantic_weight +
+                               keyword_score * keyword_weight)
 
-            merged_scores.append((doc_map[doc_id], final_score))
+            merged_scores.append((doc_map[doc_h], final_score))
 
-        # 排序
         merged_scores.sort(key=lambda x: x[1], reverse=True)
-
         return [doc for doc, _ in merged_scores]
 
+    def _deduplicate_documents(self, docs: List[Document]) -> List[Document]:
+        """基于内容片段去重"""
+        seen_hashes = set()
+        unique_docs = []
+
+        for doc in docs:
+            content_sample = doc.page_content[:200]
+            content_hash = hashlib.md5(content_sample.encode('utf-8')).hexdigest()
+            if content_hash not in seen_hashes:
+                seen_hashes.add(content_hash)
+                unique_docs.append(doc)
+
+        logger.debug(f"去重: {len(docs)} -> {len(unique_docs)}")
+        return unique_docs
+
+    def _ensure_diversity(self, docs: List[Document], min_docs: int) -> List[Document]:
+        """避免返回高度相似的文档"""
+        if len(docs) <= min_docs:
+            return docs
+
+        diverse_docs = [docs[0]]
+        for doc in docs[1:]:
+            is_diverse = True
+            for selected_doc in diverse_docs:
+                similarity = self._calculate_content_similarity(
+                    doc.page_content[:300],
+                    selected_doc.page_content[:300]
+                )
+                if similarity > self.similarity_threshold:
+                    is_diverse = False
+                    break
+
+            if is_diverse:
+                diverse_docs.append(doc)
+                if len(diverse_docs) >= min_docs * 2:
+                    break
+
+        logger.debug(f"多样性过滤: {len(docs)} -> {len(diverse_docs)}")
+        return diverse_docs
+
+    def _calculate_content_similarity(self, text1: str, text2: str) -> float:
+        """基于字符集合的简单相似度"""
+        set1 = set(text1)
+        set2 = set(text2)
+        if not set1 or not set2:
+            return 0.0
+
+        intersection = len(set1 & set2)
+        union = len(set1 | set2)
+        return intersection / union if union > 0 else 0.0
+
     def _simple_rerank(self, query: str, docs: List[Document], top_k: int) -> List[Document]:
-        """
-        简单重排序：基于查询-文档相似度
-
-        Args:
-            query: 查询文本
-            docs: 文档列表
-            top_k: 返回文档数
-
-        Returns:
-            重排序后的文档列表
-        """
-        query_words = set(self._extract_keywords(query))
-
-        if not query_words:
+        """基于关键词重叠的重排序"""
+        query_keywords = set(self._extract_keywords(query))
+        if not query_keywords:
             return docs[:top_k]
 
         scored_docs = []
         for doc in docs:
-            doc_words = set(self._extract_keywords(doc.page_content[:500]))  # 只看前500字
-
-            # 计算Jaccard相似度
-            if not doc_words:
+            doc_keywords = set(self._extract_keywords(doc.page_content[:500]))
+            if not doc_keywords:
                 similarity = 0.0
             else:
-                intersection = len(query_words & doc_words)
-                union = len(query_words | doc_words)
+                intersection = len(query_keywords & doc_keywords)
+                union = len(query_keywords | doc_keywords)
                 similarity = intersection / union if union > 0 else 0.0
 
             scored_docs.append((doc, similarity))
 
-        # 排序
         scored_docs.sort(key=lambda x: x[1], reverse=True)
+        return [doc for doc, _ in scored_docs[:top_k]]
 
+
+def create_retriever(vectorstore,
+                     documents: Optional[List[Document]] = None,
+                     config: Optional[Dict] = None,
+                     k: int = 10) -> Retriever:
+    """创建检索器实例的工厂函数"""
+    return Retriever(vectorstore, documents, config, k)
+
+
+class QueryExpander:
+    """查询扩展器，用于生成语义相近的查询"""
+
+    @staticmethod
+    def expand_query(query: str) -> List[str]:
+        expanded = [query]
+        synonyms = {
+            "中标": ["获得", "承揽", "签约"],
+            "金额": ["价格", "费用", "总额"],
+            "百分比": ["比例", "占比", "百分率"],
+            "目标": ["指标", "要求", "计划"],
+        }
+
+        for word, syns in synonyms.items():
+            if word in query:
+                for syn in syns:
+                    expanded.append(query.replace(word, syn))
+
+        return expanded[:3]
+
+
+class Reranker:
+    """基于关键词重叠的简单重排序器"""
+
+    @staticmethod
+    def rerank_by_question_similarity(documents: List[Document],
+                                      question: str,
+                                      top_k: int = 5) -> List[Document]:
+        question_words = set(question.lower().split())
+        scored_docs = []
+
+        for doc in documents:
+            doc_words = set(doc.page_content.lower().split())
+            intersection = len(question_words & doc_words)
+            union = len(question_words | doc_words)
+            similarity = intersection / union if union > 0 else 0
+            scored_docs.append((doc, similarity))
+
+        scored_docs.sort(key=lambda x: x[1], reverse=True)
         return [doc for doc, _ in scored_docs[:top_k]]
 
 
