@@ -316,45 +316,47 @@ class RAGSystem:
     def query(self, question: str) -> Dict[str, Any]:
         """
         执行查询
-        
+
         Args:
             question: 用户问题
-            
+
         Returns:
             包含答案和相关信息的字典
         """
         logger.info(f"处理问题: {question}")
-        
+
         result = {
             "question": question,
             "answer": None,
             "source_documents": [],
             "graph_context": None
         }
-        
+
         # 1. 从知识图谱获取相关信息
         if self.knowledge_graph:
             graph_context = self._get_graph_context(question)
             result["graph_context"] = graph_context
-        
+
         # 2. 使用RAG检索相关文档
         if self.qa_chain:
             if self.llm:
                 # 使用完整的问答链
                 qa_result = self.qa_chain({"query": question})
-                result["answer"] = qa_result.get("result", "无法生成答案")
+                raw_answer = qa_result.get("result", "无法生成答案")
+                # 清理答案，移除思考过程
+                result["answer"] = self._clean_answer(raw_answer)
                 result["source_documents"] = qa_result.get("source_documents", [])
             else:
                 # 仅检索，不生成答案
                 relevant_docs = self.qa_chain.get_relevant_documents(question)
                 result["source_documents"] = relevant_docs
-                
+
                 # 简单的答案生成（基于检索结果）
                 if relevant_docs:
                     result["answer"] = self._simple_answer_generation(question, relevant_docs)
                 else:
                     result["answer"] = "未找到相关文档"
-        
+
         return result
     
     def _get_graph_context(self, question: str) -> Dict[str, Any]:
@@ -400,12 +402,56 @@ class RAGSystem:
         """简单的答案生成（不使用LLM）"""
         # 合并相关文档内容
         context = "\n\n".join([doc.page_content for doc in documents[:3]])
-        
+
         # 返回相关内容摘要
         answer = f"根据检索到的文档，以下是相关信息：\n\n{context[:500]}..."
-        
+
         if len(context) > 500:
             answer += f"\n\n（还有更多相关内容，共检索到 {len(documents)} 个相关文档段落）"
-        
+
         return answer
+
+    def _clean_answer(self, raw_answer: str) -> str:
+        """
+        清理LLM输出，移除思考过程和冗余内容
+
+        Args:
+            raw_answer: 原始LLM输出
+
+        Returns:
+            清理后的答案
+        """
+        import re
+
+        # 1. 移除<think>标签及其内容
+        cleaned = re.sub(r'<think>.*?</think>', '', raw_answer, flags=re.DOTALL | re.IGNORECASE)
+
+        # 2. 移除常见的思考过程标记（中文和英文）
+        thinking_patterns = [
+            r'好的[，,].*?需要.*?[\n。]',
+            r'让我.*?分析.*?[\n。]',
+            r'首先[，,].*?[\n。]',
+            r'根据.*?我.*?理解.*?[\n。]',
+            r'我.*?认为.*?[\n。]',
+            r'让我们.*?[\n。]',
+            r'Ok[,，].*?need.*?[\n.]',
+            r'Let me.*?[\n.]',
+            r'First[,，].*?[\n.]',
+        ]
+
+        for pattern in thinking_patterns:
+            # 只移除开头的思考过程
+            cleaned = re.sub(r'^' + pattern, '', cleaned, flags=re.MULTILINE | re.IGNORECASE)
+
+        # 3. 移除多余的空行
+        cleaned = re.sub(r'\n{3,}', '\n\n', cleaned)
+
+        # 4. 去除首尾空白
+        cleaned = cleaned.strip()
+
+        # 5. 如果清理后为空，返回原始答案
+        if not cleaned or len(cleaned) < 10:
+            return raw_answer.strip()
+
+        return cleaned
 
