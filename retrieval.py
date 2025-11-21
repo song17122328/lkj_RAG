@@ -274,16 +274,19 @@ class Retriever:
         return intersection / union if union > 0 else 0.0
 
     def _llm_extract_file_names(self, query: str) -> List[str]:
-        """使用LLM智能提取文件名（简化版）"""
+        """使用LLM智能提取文件名（强化版）"""
         if not self.llm:
             return []
 
         try:
-            prompt = f"""列出问题中提到的文件/文档/报告/标准名称，每行一个。如无则返回"无"。
+            # 使用更严格的prompt，要求只输出文件名
+            prompt = f"""仅输出问题中提到的文件/文档/报告/标准的名称。
+一行一个名称，不要编号，不要解释，不要总结。
+如果没有提到任何文件，输出"无"。
 
 问题：{query}
 
-文件名："""
+输出："""
 
             # 调用LLM
             try:
@@ -297,21 +300,46 @@ class Retriever:
 
             # 清理输出：移除思考标签和代码块
             llm_output = re.sub(r'<think>.*?</think>', '', llm_output, flags=re.DOTALL | re.IGNORECASE)
-            llm_output = re.sub(r'</?think>', '', llm_output, flags=re.IGNORECASE)  # 移除任何残留的think标签
+            llm_output = re.sub(r'</?think>', '', llm_output, flags=re.IGNORECASE)
             llm_output = llm_output.replace('```', '').strip()
 
-            # 提取有效行：简单过滤即可
+            # 严格过滤：识别并排除句子特征
             file_names = []
+            thinking_keywords = ['总结', '思路', '我', '需要', '可能', '应该', '首先', '接下来', '最后',
+                                '确定', '找到', '整理', '分析', '因此', '所以', '然后', '包括']
+
             for line in llm_output.split('\n'):
                 line = re.sub(r'^[\d\.\-\*\s]+', '', line).strip()  # 移除序号
-                # 跳过空行、"无"、过长行(>60)、明显的完整句子
-                if (line and line not in ['无', '没有', 'None']
-                    and len(line) <= 60
-                    and not (line.count('，') > 3 or line.count('。') > 1)):
-                    file_names.append(line)
+
+                # 跳过空行和无意义词
+                if not line or line in ['无', '没有', 'None', '输出：']:
+                    continue
+
+                # 严格过滤句子特征
+                # 1. 包含冒号且后面有字（"包括："这种）
+                if '：' in line and len(line) > line.index('：') + 1:
+                    continue
+
+                # 2. 包含多个逗号或句号（完整句子特征）
+                if line.count('，') >= 2 or line.count('。') >= 1:
+                    continue
+
+                # 3. 包含思考关键词
+                if any(kw in line for kw in thinking_keywords):
+                    continue
+
+                # 4. 以"的"结尾但没有其他文件特征（"我的思路"）
+                if line.endswith('的') and len(line) < 10:
+                    continue
+
+                # 5. 过长（超过50字符）
+                if len(line) > 50:
+                    continue
+
+                file_names.append(line)
 
             logger.info(f"LLM提取: {file_names}")
-            return file_names[:5]  # 最多5个，避免噪音
+            return file_names[:3]  # 最多3个，避免噪音
 
         except Exception as e:
             logger.warning(f"LLM提取失败: {e}")
@@ -384,7 +412,7 @@ class Retriever:
         return all_names
 
     def _fuzzy_match(self, name: str, source: str) -> bool:
-        """模糊匹配文件名和source路径"""
+        """模糊匹配文件名和source路径（增强版）"""
         from difflib import SequenceMatcher
         import os
 
@@ -392,20 +420,40 @@ class Retriever:
         source_lower = source.lower()
         source_file = os.path.basename(source_lower)
 
-        # 1. 直接包含
+        # 1. 直接包含（全路径或文件名）
         if name_lower in source_lower or name_lower in source_file:
             return True
 
-        # 2. 移除特殊字符后匹配
-        clean_name = re.sub(r'[\s_\-—]+', '', name_lower)
+        # 2. 反向包含（文件名中的一部分在提取的名称中）
+        # 例如：name="UIC的报告"，source中有"UIC"
+        if len(name_lower) >= 3 and name_lower in source_file:
+            return True
+
+        # 3. 分词匹配 - 提取关键词
+        # 移除常见无意义词
+        stop_words = {'的', '报告', '文件', '文档', '标准', '年', 'document', 'report', 'file'}
+        name_words = set(re.findall(r'[\w]+', name_lower)) - stop_words
+        source_words = set(re.findall(r'[\w]+', source_file)) - stop_words
+
+        # 如果提取的名称关键词在文件名中（至少2个匹配或1个长关键词）
+        if name_words and source_words:
+            matched_words = name_words & source_words
+            long_matches = [w for w in matched_words if len(w) >= 4]
+            if len(matched_words) >= 2 or long_matches:
+                return True
+
+        # 4. 移除特殊字符后匹配
+        clean_name = re.sub(r'[\s_\-—年]+', '', name_lower)
         clean_source = re.sub(r'[\s_\-—]+', '', source_file)
         if len(clean_name) >= 4 and clean_name in clean_source:
             return True
 
-        # 3. 序列相似度匹配（使用difflib）
-        if len(name) >= 5:
+        # 5. 序列相似度匹配（使用difflib，降低阈值）
+        if len(name) >= 5 and len(source_file) >= 5:
+            # 对较短的名称使用更高阈值
+            threshold = 0.5 if len(clean_name) >= 10 else 0.6
             ratio = SequenceMatcher(None, clean_name, clean_source).ratio()
-            if ratio >= 0.6:  # 60%相似度
+            if ratio >= threshold:
                 return True
 
         return False
@@ -430,6 +478,12 @@ class Retriever:
         import os
         all_sources = {doc.metadata.get('source', '') for doc in docs if doc.metadata.get('source')}
         matched_sources = set()
+
+        # 调试：显示候选文件（仅显示前5个）
+        if logger.isEnabledFor(logging.DEBUG):
+            print(f"\n[调试] 候选文件（共{len(all_sources)}个，显示前5个）:")
+            for i, source in enumerate(list(all_sources)[:5], 1):
+                print(f"  {i}. {os.path.basename(source)[:50]}")
 
         print(f"\n[文件验证] 匹配结果:")
         for name in extracted_names:

@@ -60,14 +60,27 @@ def main():
     for question in test_questions:
         result = pipeline.answer_question(question)
         contexts = []
+        file_names = []
         source_docs = result.get("source_documents") or []
+
+        # 去重文件名
+        seen_sources = set()
         for doc in source_docs:
             page_content = getattr(doc, "page_content", None)
             if page_content:
                 contexts.append(page_content)
+
+            # 提取文件名
+            source = doc.metadata.get("source", "") if hasattr(doc, "metadata") else ""
+            if source and source not in seen_sources:
+                import os
+                file_names.append(os.path.basename(source))
+                seen_sources.add(source)
+
         items.append({
             "question": question,
             "retrieved_contexts": contexts,
+            "retrieved_file_names": file_names,
             "answer": result.get("answer")
         })
     
