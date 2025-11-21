@@ -36,7 +36,8 @@ def main():
         raise FileNotFoundError(f"AI_database_markdown目录不存在: {markdown_root}")
 
     
-    use_existing = input("是否直接使用已有向量库进行检索？(Y/N): ").strip().upper()
+    # use_existing = input("是否直接使用已有向量库进行检索？(Y/N): ").strip().upper()
+    use_existing = "Y"
     if use_existing == "Y":
         pipeline.prepare_from_existing_vectorstore()
     else:
