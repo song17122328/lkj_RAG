@@ -346,25 +346,48 @@ class Retriever:
             return []
 
     def _extract_file_names_regex(self, query: str) -> List[str]:
-        """使用正则提取文件名（简化版）"""
+        """使用正则提取文件名（增强版 - 包含组织名称）"""
         file_names = []
 
-        # 标准编号（最重要）
-        for pattern in [r'(IEEE\s*[\d.]+)', r'(GB/T\s*\d+)', r'(ISO\s*\d+)', r'(IEC\s*\d+)']:
+        # 1. 标准编号（最重要）
+        for pattern in [r'(IEEE\s*[\d.]+)', r'(GB/T\s*\d+)', r'(ISO\s*\d+)', r'(IEC\s*\d+)', r'(SUBSET[-\s]*\d+)']:
             file_names.extend(re.findall(pattern, query, re.IGNORECASE))
 
-        # 书名号内容
+        # 2. 书名号内容
         file_names.extend(re.findall(r'《([^》]{3,50})》', query))
 
-        # "在...报告"模式
+        # 3. 关键组织/机构名称（新增）
+        org_patterns = [
+            r'(UIC)',  # 国际铁路联盟
+            r'(欧洲铁路局)',
+            r'(ERA)',
+            r'(株洲中车[\u4e00-\u9fa5]{2,20}公司)',  # 株洲中车相关公司
+            r'(中车[\u4e00-\u9fa5]{2,20})',  # 中车系列
+            r'([^\s，。]{2,8}地铁)',  # XX地铁
+            r'([^\s，。]{2,6}车站)',  # XX车站
+        ]
+        for pattern in org_patterns:
+            matches = re.findall(pattern, query, re.IGNORECASE)
+            file_names.extend(matches)
+
+        # 4. "在...报告"模式
         file_names.extend(re.findall(r'在(.{3,25}?)(?:报告|文档|文件)(?:里|中)', query))
         file_names.extend(re.findall(r'根据(.{3,25}?)(?:报告|文档|文件)', query))
 
-        # 年份_英文名
+        # 5. 年份_英文名或年份-年份
         file_names.extend(re.findall(r'(\d{4}[_-][A-Za-z][\w\-\s]{5,35})', query))
+        file_names.extend(re.findall(r'(\d{4}[-–—]\d{4})', query))  # 2025-2027
 
-        # 清理
-        return [n.strip() for n in file_names if len(n.strip()) >= 3]
+        # 清理并去重
+        cleaned = []
+        seen = set()
+        for name in file_names:
+            name = name.strip()
+            if len(name) >= 2 and name.lower() not in seen:
+                cleaned.append(name)
+                seen.add(name.lower())
+
+        return cleaned
 
     def _extract_file_names(self, query: str) -> List[str]:
         """
@@ -411,8 +434,35 @@ class Retriever:
 
         return all_names
 
+    def _apply_alias_mapping(self, name: str) -> List[str]:
+        """应用别名映射，返回可能的匹配名称列表"""
+        # 常见组织/标准的中英文别名映射
+        alias_map = {
+            'uic': ['uic', '国际铁路联盟', 'union internationale', 'international union'],
+            '欧洲铁路局': ['era', 'european railway agency', 'european union agency', 'spd', 'single programming'],
+            '株洲中车时代电气': ['中车时代', 'crrc', '时代电气', 'zhuzhou'],
+            '南京地铁': ['南京', 'nanjing', 'metro'],
+            'ieee': ['ieee', '电气电子工程师学会'],
+            'subset': ['subset', 'ertms', 'etcs'],
+            'gb/t': ['gbt', 'gb', '国标', '国家标准'],
+            'cbtc': ['cbtc', '基于通信的列车控制', 'communication based train control'],
+            'manresa': ['manresa', '曼雷萨'],
+            'ato': ['ato', '列车自动运行', 'automatic train operation'],
+        }
+
+        name_lower = name.lower()
+        results = [name]  # 始终包含原始名称
+
+        # 查找匹配的别名组
+        for key, aliases in alias_map.items():
+            if key in name_lower or any(alias in name_lower for alias in aliases):
+                results.extend(aliases)
+                break
+
+        return list(set(results))  # 去重
+
     def _fuzzy_match(self, name: str, source: str) -> bool:
-        """模糊匹配文件名和source路径（增强版）"""
+        """模糊匹配文件名和source路径（增强版 - 支持别名）"""
         from difflib import SequenceMatcher
         import os
 
@@ -420,26 +470,36 @@ class Retriever:
         source_lower = source.lower()
         source_file = os.path.basename(source_lower)
 
-        # 1. 直接包含（全路径或文件名）
-        if name_lower in source_lower or name_lower in source_file:
-            return True
+        # 应用别名映射
+        possible_names = self._apply_alias_mapping(name)
 
-        # 2. 反向包含（文件名中的一部分在提取的名称中）
-        # 例如：name="UIC的报告"，source中有"UIC"
-        if len(name_lower) >= 3 and name_lower in source_file:
-            return True
+        for test_name in possible_names:
+            test_name_lower = test_name.lower()
+
+            # 1. 直接包含（全路径或文件名）
+            if test_name_lower in source_lower or test_name_lower in source_file:
+                return True
+
+            # 2. 反向包含（文件名中的一部分在提取的名称中）
+            if len(test_name_lower) >= 3:
+                # 分割成token进行匹配
+                test_tokens = re.findall(r'[\w]+', test_name_lower)
+                source_tokens = re.findall(r'[\w]+', source_file)
+
+                for token in test_tokens:
+                    if len(token) >= 3 and any(token in st for st in source_tokens):
+                        return True
 
         # 3. 分词匹配 - 提取关键词
-        # 移除常见无意义词
-        stop_words = {'的', '报告', '文件', '文档', '标准', '年', 'document', 'report', 'file'}
+        stop_words = {'的', '报告', '文件', '文档', '标准', '年', '号线', 'document', 'report', 'file', 'the', 'a', 'an'}
         name_words = set(re.findall(r'[\w]+', name_lower)) - stop_words
         source_words = set(re.findall(r'[\w]+', source_file)) - stop_words
 
-        # 如果提取的名称关键词在文件名中（至少2个匹配或1个长关键词）
+        # 如果提取的名称关键词在文件名中（至少1个长关键词或2个短关键词）
         if name_words and source_words:
             matched_words = name_words & source_words
             long_matches = [w for w in matched_words if len(w) >= 4]
-            if len(matched_words) >= 2 or long_matches:
+            if long_matches or len(matched_words) >= 2:
                 return True
 
         # 4. 移除特殊字符后匹配
@@ -448,9 +508,8 @@ class Retriever:
         if len(clean_name) >= 4 and clean_name in clean_source:
             return True
 
-        # 5. 序列相似度匹配（使用difflib，降低阈值）
+        # 5. 序列相似度匹配（使用difflib）
         if len(name) >= 5 and len(source_file) >= 5:
-            # 对较短的名称使用更高阈值
             threshold = 0.5 if len(clean_name) >= 10 else 0.6
             ratio = SequenceMatcher(None, clean_name, clean_source).ratio()
             if ratio >= threshold:
