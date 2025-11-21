@@ -39,8 +39,11 @@ LLM_CONFIG = {
 # 嵌入模型配置
 EMBEDDING_CONFIG = {
     "provider": "local",  # "openai", "local"
-    "model_name": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
-    "device": "cpu",  # "cuda" for GPU
+    # 推荐使用BGE系列中文模型，效果更好
+    # "model_name": "BAAI/bge-large-zh-v1.5",  # 最佳效果，但较大
+    "model_name": "BAAI/bge-base-zh-v1.5",  # 平衡性能和速度
+    # "model_name": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",  # 原模型
+    "device": "cpu",  # "cuda" for GPU（建议使用GPU加速）
     "batch_size": 32,
     "normalize": True,
 }
@@ -49,8 +52,8 @@ EMBEDDING_CONFIG = {
 
 # 文本分割配置
 TEXT_SPLITTING = {
-    "chunk_size": 1000,  # 块大小（字符数）
-    "chunk_overlap": 200,  # 块重叠（字符数）
+    "chunk_size": 1500,  # 块大小（字符数）- 增加以保留更多上下文
+    "chunk_overlap": 300,  # 块重叠（字符数）- 增加以避免信息断裂
     "separators": ["\n\n", "\n", "。", "！", "？", ".", "!", "?", " ", ""],
     "length_function": len,
 }
@@ -85,9 +88,9 @@ VECTOR_STORE = {
 
 RETRIEVAL = {
     "search_type": "similarity",  # "similarity", "mmr", "similarity_score_threshold"
-    "k": 5,  # 返回的文档数
-    "score_threshold": 0.5,  # 相似度阈值（仅用于similarity_score_threshold）
-    "fetch_k": 20,  # MMR的初始获取数（仅用于mmr）
+    "k": 10,  # 返回的文档数 - 增加到10以提高召回率
+    "score_threshold": 0.3,  # 相似度阈值 - 降低以包含更多候选
+    "fetch_k": 30,  # MMR的初始获取数（仅用于mmr）- 增加候选池
     "lambda_mult": 0.5,  # MMR的多样性参数（仅用于mmr）
 }
 
@@ -103,7 +106,15 @@ QA_CHAIN = {
 # ==================== 提示词模板 ====================
 
 PROMPTS = {
-    "qa_template": """基于以下上下文信息回答问题。如果答案不在上下文中，请说"我没有足够的信息来回答这个问题"。
+    "qa_template": """你是一个专业的铁路交通领域技术助手。请基于以下上下文信息回答问题。
+
+**重要指示：**
+1. 仔细阅读上下文中的所有信息，包括表格、数据和技术细节
+2. 如果上下文包含答案，请直接引用相关信息并给出准确答案
+3. 对于涉及数字、日期、时间、编号、百分比等精确数据的问题，必须确保完全准确
+4. 对于技术术语、标准编号、系统名称等，必须保持原文准确性
+5. 如果上下文中确实没有足够信息回答问题，明确说"根据提供的上下文信息，我无法找到该问题的准确答案"
+6. 不要编造、推测或使用上下文之外的信息
 
 上下文信息:
 {context}
