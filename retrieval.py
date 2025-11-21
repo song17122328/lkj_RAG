@@ -63,8 +63,27 @@ class Retriever:
         self.similarity_threshold = 0.9  # 内容相似度阈值
         self.diversity_threshold = 0.3   # 多样性阈值
 
+        # 提取并缓存所有可用的文件名（用于LLM选择）
+        self.available_files = self._extract_available_files()
+
         logger.info(f"检索器初始化: hybrid={self.use_hybrid}, "
-                    f"reranking={self.use_reranking}, k={k}, llm={'可用' if llm else '不可用'}")
+                    f"reranking={self.use_reranking}, k={k}, llm={'可用' if llm else '不可用'}, "
+                    f"可用文件数={len(self.available_files)}")
+
+    def _extract_available_files(self) -> List[str]:
+        """提取所有可用的文件名（去重）"""
+        import os
+        files = set()
+
+        # 从documents中提取
+        for doc in self.documents:
+            if hasattr(doc, 'metadata') and 'source' in doc.metadata:
+                source = doc.metadata['source']
+                filename = os.path.basename(source)
+                files.add(filename)
+
+        # 转换为排序列表
+        return sorted(list(files))
 
     def retrieve(self, query: str, k: Optional[int] = None) -> List[Document]:
         """执行检索并返回文档列表"""
@@ -274,17 +293,22 @@ class Retriever:
         return intersection / union if union > 0 else 0.0
 
     def _llm_extract_file_names(self, query: str) -> List[str]:
-        """使用LLM智能提取文件名（强化版）"""
-        if not self.llm:
+        """使用LLM从所有可用文件中选择最相关的文件（新策略）"""
+        if not self.llm or not self.available_files:
             return []
 
         try:
-            # 使用更严格的prompt，要求只输出文件名
-            prompt = f"""仅输出问题中提到的文件/文档/报告/标准的名称。
-一行一个名称，不要编号，不要解释，不要总结。
-如果没有提到任何文件，输出"无"。
+            # 格式化所有可用文件列表
+            file_list = "\n".join([f"{i+1}. {filename}" for i, filename in enumerate(self.available_files)])
+
+            # 新策略：让LLM从所有文件中选择最相关的
+            prompt = f"""可用文件列表（共{len(self.available_files)}个文件）：
+{file_list}
 
 问题：{query}
+
+你认为答案应该从哪个或哪几个文档中检索？请直接列出文件名，一行一个，不要编号，不要解释。
+如果没有相关文件，输出"无"。
 
 输出："""
 
@@ -295,7 +319,8 @@ class Retriever:
                     llm_output = response.content if hasattr(response, 'content') else str(response)
                 else:
                     llm_output = self.llm(prompt)
-            except:
+            except Exception as e:
+                logger.warning(f"LLM调用失败: {e}")
                 return []
 
             # 清理输出：移除思考标签和代码块
@@ -303,11 +328,8 @@ class Retriever:
             llm_output = re.sub(r'</?think>', '', llm_output, flags=re.IGNORECASE)
             llm_output = llm_output.replace('```', '').strip()
 
-            # 严格过滤：识别并排除句子特征
-            file_names = []
-            thinking_keywords = ['总结', '思路', '我', '需要', '可能', '应该', '首先', '接下来', '最后',
-                                '确定', '找到', '整理', '分析', '因此', '所以', '然后', '包括']
-
+            # 解析LLM输出的文件名
+            selected_files = []
             for line in llm_output.split('\n'):
                 line = re.sub(r'^[\d\.\-\*\s]+', '', line).strip()  # 移除序号
 
@@ -315,34 +337,26 @@ class Retriever:
                 if not line or line in ['无', '没有', 'None', '输出：']:
                     continue
 
-                # 严格过滤句子特征
-                # 1. 包含冒号且后面有字（"包括："这种）
-                if '：' in line and len(line) > line.index('：') + 1:
+                # 跳过明显的句子（包含完整标点）
+                if '，' in line or '。' in line or '：' in line:
                     continue
 
-                # 2. 包含多个逗号或句号（完整句子特征）
-                if line.count('，') >= 2 or line.count('。') >= 1:
-                    continue
+                # 验证是否在可用文件列表中（模糊匹配）
+                line_lower = line.lower()
+                for available_file in self.available_files:
+                    # 精确匹配或包含关系
+                    if line_lower == available_file.lower() or line_lower in available_file.lower():
+                        selected_files.append(available_file)
+                        break
 
-                # 3. 包含思考关键词
-                if any(kw in line for kw in thinking_keywords):
-                    continue
+            # 去重
+            selected_files = list(dict.fromkeys(selected_files))
 
-                # 4. 以"的"结尾但没有其他文件特征（"我的思路"）
-                if line.endswith('的') and len(line) < 10:
-                    continue
-
-                # 5. 过长（超过50字符）
-                if len(line) > 50:
-                    continue
-
-                file_names.append(line)
-
-            logger.info(f"LLM提取: {file_names}")
-            return file_names[:3]  # 最多3个，避免噪音
+            logger.info(f"LLM选择的文件: {selected_files}")
+            return selected_files[:5]  # 最多返回5个文件
 
         except Exception as e:
-            logger.warning(f"LLM提取失败: {e}")
+            logger.warning(f"LLM文件选择失败: {e}")
             return []
 
     def _extract_file_names_regex(self, query: str) -> List[str]:
@@ -434,35 +448,8 @@ class Retriever:
 
         return all_names
 
-    def _apply_alias_mapping(self, name: str) -> List[str]:
-        """应用别名映射，返回可能的匹配名称列表"""
-        # 常见组织/标准的中英文别名映射
-        alias_map = {
-            'uic': ['uic', '国际铁路联盟', 'union internationale', 'international union'],
-            '欧洲铁路局': ['era', 'european railway agency', 'european union agency', 'spd', 'single programming'],
-            '株洲中车时代电气': ['中车时代', 'crrc', '时代电气', 'zhuzhou'],
-            '南京地铁': ['南京', 'nanjing', 'metro'],
-            'ieee': ['ieee', '电气电子工程师学会'],
-            'subset': ['subset', 'ertms', 'etcs'],
-            'gb/t': ['gbt', 'gb', '国标', '国家标准'],
-            'cbtc': ['cbtc', '基于通信的列车控制', 'communication based train control'],
-            'manresa': ['manresa', '曼雷萨'],
-            'ato': ['ato', '列车自动运行', 'automatic train operation'],
-        }
-
-        name_lower = name.lower()
-        results = [name]  # 始终包含原始名称
-
-        # 查找匹配的别名组
-        for key, aliases in alias_map.items():
-            if key in name_lower or any(alias in name_lower for alias in aliases):
-                results.extend(aliases)
-                break
-
-        return list(set(results))  # 去重
-
     def _fuzzy_match(self, name: str, source: str) -> bool:
-        """模糊匹配文件名和source路径（增强版 - 支持别名）"""
+        """模糊匹配文件名和source路径（简化版 - 无硬编码映射）"""
         from difflib import SequenceMatcher
         import os
 
@@ -470,27 +457,27 @@ class Retriever:
         source_lower = source.lower()
         source_file = os.path.basename(source_lower)
 
-        # 应用别名映射
-        possible_names = self._apply_alias_mapping(name)
+        # 1. 直接包含（全路径或文件名）
+        if name_lower in source_lower or name_lower in source_file:
+            return True
 
-        for test_name in possible_names:
-            test_name_lower = test_name.lower()
+        # 2. Token级别匹配
+        if len(name_lower) >= 3:
+            # 分割成token进行匹配
+            name_tokens = re.findall(r'[\w]+', name_lower)
+            source_tokens = re.findall(r'[\w]+', source_file)
 
-            # 1. 直接包含（全路径或文件名）
-            if test_name_lower in source_lower or test_name_lower in source_file:
+            # 如果名称的主要token都在文件中出现
+            matched_tokens = 0
+            for token in name_tokens:
+                if len(token) >= 3 and any(token in st for st in source_tokens):
+                    matched_tokens += 1
+
+            # 如果大部分token都匹配，认为是同一文件
+            if matched_tokens >= len(name_tokens) * 0.6 and matched_tokens >= 2:
                 return True
 
-            # 2. 反向包含（文件名中的一部分在提取的名称中）
-            if len(test_name_lower) >= 3:
-                # 分割成token进行匹配
-                test_tokens = re.findall(r'[\w]+', test_name_lower)
-                source_tokens = re.findall(r'[\w]+', source_file)
-
-                for token in test_tokens:
-                    if len(token) >= 3 and any(token in st for st in source_tokens):
-                        return True
-
-        # 3. 分词匹配 - 提取关键词
+        # 3. 分词匹配 - 提取关键词（去除停用词）
         stop_words = {'的', '报告', '文件', '文档', '标准', '年', '号线', 'document', 'report', 'file', 'the', 'a', 'an'}
         name_words = set(re.findall(r'[\w]+', name_lower)) - stop_words
         source_words = set(re.findall(r'[\w]+', source_file)) - stop_words
