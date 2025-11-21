@@ -239,14 +239,26 @@ class RAGSystem:
         use_advanced = ADVANCED_FEATURES.get("hybrid_search", False) or ADVANCED_FEATURES.get("reranking", False)
 
         if use_advanced:
-            # 使用检索器
+            # 使用增强版检索器
             try:
-                from retrieval import Retriever
-                retriever_instance = Retriever(
-                    vectorstore=self.vectorstore,
-                    documents=self.documents,
-                    k=k
-                )
+                # 优先使用增强版检索器
+                try:
+                    from retrieval_enhanced import EnhancedRetriever
+                    retriever_instance = EnhancedRetriever(
+                        vectorstore=self.vectorstore,
+                        documents=self.documents,
+                        k=k
+                    )
+                    logger.info("使用增强版检索器（带去重和多样性约束）")
+                except ImportError:
+                    # 回退到标准检索器
+                    from retrieval import Retriever
+                    retriever_instance = Retriever(
+                        vectorstore=self.vectorstore,
+                        documents=self.documents,
+                        k=k
+                    )
+                    logger.info("使用标准检索器")
 
                 # 创建自定义检索器包装
                 class CustomRetriever(BaseRetriever):
@@ -257,7 +269,7 @@ class RAGSystem:
 
                     def get_relevant_documents(self, query: str) -> List[Document]:
                         return self.ret.retrieve(query, k=self.k)
-                    
+
                     async def aget_relevant_documents(self, query: str) -> List[Document]:
                         # 异步版本（如果需要）
                         return self.get_relevant_documents(query)

@@ -56,7 +56,7 @@ EMBEDDING_CONFIG = {
 # 文本分割配置
 TEXT_SPLITTING = {
     "chunk_size": 1500,  # 块大小（字符数）- 增加以保留更多上下文
-    "chunk_overlap": 300,  # 块重叠（字符数）- 增加以避免信息断裂
+    "chunk_overlap": 150,  # 块重叠（字符数）- 减少以避免过多重复
     "separators": ["\n\n", "\n", "。", "！", "？", ".", "!", "?", " ", ""],
     "length_function": len,
 }
