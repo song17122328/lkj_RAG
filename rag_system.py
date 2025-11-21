@@ -250,21 +250,22 @@ class RAGSystem:
                 )
                 logger.info("使用定制检索器（带去重和多样性约束）")
 
-                # 创建自定义检索器包装
+                # 创建自定义检索器包装（兼容 Pydantic v2）
                 class CustomRetriever(BaseRetriever):
-                    def __init__(self, ret, k):
-                        super().__init__()
-                        self.ret = ret
-                        self.k = k
+                    retriever_instance: Any  # 使用类型注解定义字段
+                    k: int
+
+                    class Config:
+                        arbitrary_types_allowed = True
 
                     def get_relevant_documents(self, query: str) -> List[Document]:
-                        return self.ret.retrieve(query, k=self.k)
+                        return self.retriever_instance.retrieve(query, k=self.k)
 
                     async def aget_relevant_documents(self, query: str) -> List[Document]:
                         # 异步版本（如果需要）
                         return self.get_relevant_documents(query)
 
-                retriever = CustomRetriever(retriever_instance, k)
+                retriever = CustomRetriever(retriever_instance=retriever_instance, k=k)
                 logger.info(f"已启用检索器 (k={k})")
             except Exception as e:
                 logger.warning(f"高级检索器初始化失败，回退到向量库自带检索: {e}")
