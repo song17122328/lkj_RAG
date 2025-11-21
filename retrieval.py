@@ -301,8 +301,8 @@ class Retriever:
             # 格式化所有可用文件列表
             file_list = "\n".join([f"{i+1}. {filename}" for i, filename in enumerate(self.available_files)])
 
-            # 优化的prompt：引导LLM理解问题关键词和文件名的语义关联
-            prompt = f"""任务：从文件列表中选择最可能包含答案的文档。
+            # 优化的prompt：引导LLM精准选择最相关的文件
+            prompt = f"""任务：从文件列表中精准选择最可能包含答案的1-3个文档。
 
 可用文件列表（共{len(self.available_files)}个）：
 {file_list}
@@ -310,12 +310,14 @@ class Retriever:
 问题：{query}
 
 分析步骤：
-1. 识别问题中的关键实体（组织、标准编号、项目名称、地点等）
-2. 匹配文件名中的相关关键词（注意中英文对应关系）
-3. 选择3-5个最相关的文件
+1. 识别问题中的关键实体（组织名、标准编号、项目名、地点、年份等）
+2. 在文件名中查找这些关键词（注意中英文对应：UIC↔国际铁路联盟、ERA↔欧洲铁路局等）
+3. 只选择与问题高度相关的1-3个文件（宁缺毋滥）
 
-输出格式：直接列出文件名，一行一个，不要编号和解释。
-如果没有明显相关的文件，输出"无"。
+输出要求：
+- 直接列出文件名，一行一个
+- 不要编号、不要解释、不要添加额外文字
+- 如果没有高度相关的文件，输出"无"
 
 输出："""
 
@@ -381,7 +383,7 @@ class Retriever:
                 print(f"  {i}. {fname[:60]}...")
 
             logger.info(f"LLM选择的文件: {selected_files}")
-            return selected_files[:5]  # 最多返回5个文件
+            return selected_files[:3]  # 最多返回3个文件（精准优先）
 
         except Exception as e:
             logger.warning(f"LLM文件选择失败: {e}")
