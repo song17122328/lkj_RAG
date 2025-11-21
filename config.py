@@ -39,10 +39,13 @@ LLM_CONFIG = {
 # 嵌入模型配置
 EMBEDDING_CONFIG = {
     "provider": "local",  # "openai", "local"
-    # 推荐使用BGE系列中文模型，效果更好
-    # "model_name": "BAAI/bge-large-zh-v1.5",  # 最佳效果，但较大
-    "model_name": "BAAI/bge-base-zh-v1.5",  # 平衡性能和速度
-    # "model_name": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",  # 原模型
+    # 多语言模型推荐（支持中文+英文+德文等100+语言）：
+    "model_name": "BAAI/bge-m3",  # 推荐：BGE多语言模型，效果最佳
+    # "model_name": "intfloat/multilingual-e5-large",  # 备选：E5多语言大模型
+    # "model_name": "sentence-transformers/paraphrase-multilingual-mpnet-base-v2",  # 备选：MPNet多语言
+    # "model_name": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",  # 原模型（较小）
+    # 纯中文模型（仅当文档全为中文时使用）：
+    # "model_name": "BAAI/bge-base-zh-v1.5",  # 中文专用
     "device": "cpu",  # "cuda" for GPU（建议使用GPU加速）
     "batch_size": 32,
     "normalize": True,
