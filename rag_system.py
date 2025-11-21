@@ -4,6 +4,7 @@ RAG检索生成系统
 """
 
 import os
+import shutil
 from typing import List, Dict, Any
 import logging
 import networkx as nx
@@ -203,6 +204,15 @@ class RAGSystem:
         """创建向量存储"""
         logger.info("创建向量存储...")
         
+        # 如果目录已存在，先清空以确保重新构建
+        if os.path.exists(persist_directory):
+            logger.info(f"检测到已有向量存储目录，正在清空: {persist_directory}")
+            try:
+                shutil.rmtree(persist_directory)
+            except Exception as e:
+                logger.error(f"清空旧向量存储目录失败: {e}")
+                raise
+
         # 使用Chroma作为向量数据库（支持持久化）
         self.vectorstore = Chroma.from_documents(
             documents=self.documents,
