@@ -75,6 +75,9 @@ class Retriever:
         else:
             docs = self._semantic_search(query, k=retrieve_k)
 
+        # 文件名匹配优化（在去重之前，确保匹配文档优先）
+        docs = self._boost_file_name_matches(query, docs)
+
         docs = self._deduplicate_documents(docs)
         docs = self._ensure_diversity(docs, min_docs=k)
 
@@ -266,6 +269,148 @@ class Retriever:
         intersection = len(set1 & set2)
         union = len(set1 | set2)
         return intersection / union if union > 0 else 0.0
+
+    def _extract_file_names(self, query: str) -> List[str]:
+        """
+        从问题中提取可能的文件名
+
+        支持多种模式：
+        - 在...报告里/文档里/的报告中
+        - 根据文档《...》
+        - 文件名模式（包括中文、英文、标准编号等）
+
+        Args:
+            query: 用户问题
+
+        Returns:
+            提取的文件名列表
+        """
+        file_names = []
+
+        # 模式1: 在...报告里/文档里/中
+        patterns = [
+            r'在[《\"\']*([^》\"\'\n，。！？]{3,30}?)[》\"\']*(?:的)?(?:报告|文档|文件|事件调查报告|分析报告|技术报告)(?:里|中|内)',
+            r'根据[《\"\']*([^》\"\'\n，。！？]{3,30}?)[》\"\']*(?:报告|文档|文件)',
+            r'文档[《\"\']*([^》\"\'\n，。！？]{3,30}?)[》\"\']*',
+        ]
+
+        for pattern in patterns:
+            matches = re.findall(pattern, query)
+            file_names.extend(matches)
+
+        # 模式2: 《文件名》
+        matches = re.findall(r'《([^》]{3,50})》', query)
+        file_names.extend(matches)
+
+        # 模式3: 标准编号和技术文档（IEEE, GB/T, ISO等）
+        standard_patterns = [
+            r'(IEEE\s+[\d.]+(?:-[\d]+)?)',
+            r'(GB/T\s+\d+(?:-\d+)?)',
+            r'(ISO\s+\d+(?:-\d+)?)',
+            r'(IEC\s+\d+(?:-\d+)?)',
+            r'(EN\s+\d+(?:-\d+)?)',
+        ]
+
+        for pattern in standard_patterns:
+            matches = re.findall(pattern, query, re.IGNORECASE)
+            file_names.extend(matches)
+
+        # 模式4: 年份+英文词组（如"2024_Communications-Based Train Control"）
+        matches = re.findall(r'(\d{4}[_-][A-Za-z][A-Za-z0-9_\-\s]{5,40})', query)
+        file_names.extend(matches)
+
+        # 清理和规范化
+        cleaned_names = []
+        for name in file_names:
+            name = name.strip()
+            # 移除可能的标点符号
+            name = re.sub(r'^[，。、：:；;]+', '', name)
+            name = re.sub(r'[，。、：:；;]+$', '', name)
+            if len(name) >= 3:  # 至少3个字符
+                cleaned_names.append(name)
+
+        logger.debug(f"从问题中提取文件名: {cleaned_names}")
+        return cleaned_names
+
+    def _boost_file_name_matches(self, query: str, docs: List[Document]) -> List[Document]:
+        """
+        根据文件名匹配提升文档优先级
+
+        策略：
+        1. 从问题中提取可能的文件名
+        2. 对每个文档，检查其source是否匹配提取的文件名
+        3. 匹配的文档移到列表前面
+
+        Args:
+            query: 用户问题
+            docs: 文档列表
+
+        Returns:
+            重排序后的文档列表（匹配文档优先）
+        """
+        if not docs:
+            return docs
+
+        # 提取问题中的文件名
+        extracted_names = self._extract_file_names(query)
+
+        if not extracted_names:
+            logger.debug("未从问题中提取到文件名，跳过文件名匹配")
+            return docs
+
+        # 分类文档：匹配的和不匹配的
+        matched_docs = []
+        unmatched_docs = []
+
+        for doc in docs:
+            # 获取文档的source（文件路径）
+            source = doc.metadata.get('source', '')
+
+            # 检查是否有任何提取的文件名匹配source
+            is_matched = False
+            for file_name in extracted_names:
+                # 多种匹配方式
+                file_name_lower = file_name.lower()
+                source_lower = source.lower()
+
+                # 方式1: 直接包含
+                if file_name in source or file_name_lower in source_lower:
+                    is_matched = True
+                    logger.debug(f"文件名匹配（直接）: '{file_name}' in '{source}'")
+                    break
+
+                # 方式2: 移除空格后匹配（处理可能的编码问题）
+                file_name_no_space = file_name.replace(' ', '').replace('_', '').replace('-', '')
+                source_no_space = source.replace(' ', '').replace('_', '').replace('-', '')
+                if len(file_name_no_space) >= 5 and file_name_no_space in source_no_space:
+                    is_matched = True
+                    logger.debug(f"文件名匹配（无空格）: '{file_name}' ~ '{source}'")
+                    break
+
+                # 方式3: 模糊匹配（至少60%字符相同）
+                if len(file_name) >= 5:
+                    # 简单的字符重叠度计算
+                    set_name = set(file_name_lower)
+                    set_source = set(source_lower)
+                    if set_name and set_source:
+                        overlap = len(set_name & set_source) / len(set_name)
+                        if overlap >= 0.6:
+                            is_matched = True
+                            logger.debug(f"文件名匹配（模糊{overlap:.2f}）: '{file_name}' ~ '{source}'")
+                            break
+
+            if is_matched:
+                matched_docs.append(doc)
+            else:
+                unmatched_docs.append(doc)
+
+        if matched_docs:
+            logger.info(f"文件名匹配: 找到{len(matched_docs)}个匹配文档，将优先返回")
+            # 匹配的文档放在前面，然后是未匹配的
+            return matched_docs + unmatched_docs
+        else:
+            logger.debug("没有文档匹配提取的文件名")
+            return docs
 
     def _simple_rerank(self, query: str, docs: List[Document], top_k: int) -> List[Document]:
         """基于关键词重叠的重排序"""

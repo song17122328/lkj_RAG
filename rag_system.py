@@ -428,6 +428,9 @@ class RAGSystem:
         """
         清理LLM输出，移除思考过程和冗余内容
 
+        策略：如果存在</think>标签，提取标签后的内容作为最终答案；
+        否则使用正则清理思考过程标记
+
         Args:
             raw_answer: 原始LLM输出
 
@@ -436,10 +439,32 @@ class RAGSystem:
         """
         import re
 
-        # 1. 移除<think>标签及其内容
-        cleaned = re.sub(r'<think>.*?</think>', '', raw_answer, flags=re.DOTALL | re.IGNORECASE)
+        # 策略1：如果存在</think>标签，提取标签后的内容
+        if '</think>' in raw_answer.lower():
+            # 查找最后一个</think>标签的位置（不区分大小写）
+            # 使用正则找到所有</think>标签
+            matches = list(re.finditer(r'</think>', raw_answer, flags=re.IGNORECASE))
+            if matches:
+                last_match = matches[-1]
+                # 提取</think>之后的内容
+                after_think = raw_answer[last_match.end():].strip()
 
-        # 2. 移除常见的思考过程标记（中文和英文）
+                # 如果存在，跳过可能的换行符
+                if after_think:
+                    # 移除开头的多余空行
+                    after_think = re.sub(r'^\s*\n+', '', after_think)
+
+                    # 如果提取的内容足够长，使用它
+                    if len(after_think) >= 10:
+                        return after_think
+
+        # 策略2：如果没有</think>标签或提取失败，使用原有清理逻辑
+        cleaned = raw_answer
+
+        # 尝试移除<think>...</think>标签及其内容
+        cleaned = re.sub(r'<think>.*?</think>', '', cleaned, flags=re.DOTALL | re.IGNORECASE)
+
+        # 移除常见的思考过程标记（中文和英文）
         thinking_patterns = [
             r'好的[，,].*?需要.*?[\n。]',
             r'让我.*?分析.*?[\n。]',
@@ -456,13 +481,13 @@ class RAGSystem:
             # 只移除开头的思考过程
             cleaned = re.sub(r'^' + pattern, '', cleaned, flags=re.MULTILINE | re.IGNORECASE)
 
-        # 3. 移除多余的空行
+        # 移除多余的空行
         cleaned = re.sub(r'\n{3,}', '\n\n', cleaned)
 
-        # 4. 去除首尾空白
+        # 去除首尾空白
         cleaned = cleaned.strip()
 
-        # 5. 如果清理后为空，返回原始答案
+        # 如果清理后为空，返回原始答案
         if not cleaned or len(cleaned) < 10:
             return raw_answer.strip()
 
