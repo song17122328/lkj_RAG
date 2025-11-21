@@ -29,7 +29,7 @@
 
 ```python
 EMBEDDING_CONFIG = {
-    "model_name": "BAAI/bge-base-zh-v1.5",  # 从多语言模型改为中文专用模型
+    "model_name": "BAAI/bge-m3",  # 多语言模型，支持中英德等100+语言
 }
 ```
 
@@ -84,88 +84,119 @@ TEXT_SPLITTING = {
 - 减少幻觉和推测
 - 对数字、日期等敏感信息更谨慎
 
-## 推荐的进阶优化
+### ✅ 优化5：集成混合检索和重排序（已实施）
 
-### 方案A：混合检索（适合专业术语多的场景）
+**已启用功能**：
+```python
+ADVANCED_FEATURES = {
+    "hybrid_search": True,  # 混合搜索（关键词+语义）
+    "hybrid_weight": 0.3,  # 关键词权重30%
+    "reranking": True,  # 重排序
+    "reranking_top_k": 20,  # 先检索20个再重排到10个
+}
+```
 
-**实施步骤**：
+**实现文件**：
+- `rag_enhanced.py` - 增强检索器实现
+- `rag_system.py` - 自动集成增强检索器
+
+**工作原理**：
+1. **混合检索**：
+   - 70%语义相似度 + 30%关键词匹配
+   - 特别适合标准编号、专业术语查询
+   - 提升精确匹配能力
+
+2. **重排序**：
+   - 先检索20个候选文档
+   - 基于关键词重叠重新排序
+   - 返回最相关的10个
+
+**效果预期**：
+- 标准编号、专业术语匹配准确率：+40-60%
+- 综合检索准确率：+20-30%
+- 对问题1、2、5、9、10等精确查询特别有效
+
+## 可选的进阶优化
+
+### 方案A：使用BM25算法（已有简化版，可选升级）
+
+**当前状态**：
+- ✅ 已实施简化版关键词匹配
+- 📋 可选：升级到完整BM25算法
+
+**升级步骤**（可选）：
 
 1. 安装依赖：
 ```bash
-pip install rank-bm25
+pip install rank-bm25 jieba
 ```
 
-2. 修改 `rag_system.py`，添加混合检索：
+2. 修改 `rag_enhanced.py`，将 `_keyword_match` 方法替换为BM25实现：
 
 ```python
 from rank_bm25 import BM25Okapi
 import jieba  # 中文分词
 
-class RAGSystem:
-    def setup_qa_chain(self):
-        # 创建BM25索引
-        tokenized_corpus = [list(jieba.cut(doc.page_content))
-                           for doc in self.documents]
-        self.bm25 = BM25Okapi(tokenized_corpus)
+def _keyword_match_bm25(self, query: str, k: int) -> List[tuple]:
+    """使用BM25算法的关键词匹配"""
+    # 分词
+    tokenized_corpus = [list(jieba.cut(doc.page_content)) for doc in self.documents]
+    bm25 = BM25Okapi(tokenized_corpus)
 
-        # 自定义检索器
-        def hybrid_retriever(query):
-            # 1. 语义检索
-            semantic_docs = self.vectorstore.similarity_search_with_score(query, k=10)
+    # 查询
+    tokenized_query = list(jieba.cut(query))
+    scores = bm25.get_scores(tokenized_query)
 
-            # 2. BM25关键词检索
-            tokenized_query = list(jieba.cut(query))
-            bm25_scores = self.bm25.get_scores(tokenized_query)
-            bm25_top_indices = bm25_scores.argsort()[-10:][::-1]
-
-            # 3. 合并结果（0.7语义 + 0.3关键词）
-            # ... 实现合并逻辑
-
-            return merged_docs[:5]
+    # 返回top-k
+    top_indices = scores.argsort()[-k:][::-1]
+    return [(self.documents[i], scores[i]) for i in top_indices]
 ```
 
-**预期效果**：
-- 标准编号、专业术语匹配准确率提升40-60%
-- 适合问题1、2、5、9、10等涉及精确匹配的场景
+**预期提升**：
+- 关键词匹配精度：+10-15%（相对当前简化版）
+- 更适合长文档检索
 
-### 方案B：重排序（Reranking）
+### 方案B：使用神经网络重排序模型（已有简化版，可选升级）
 
-**实施步骤**：
+**当前状态**：
+- ✅ 已实施基于关键词的简单重排序
+- 📋 可选：升级到神经网络重排序模型
 
-1. 使用轻量级重排序模型：
+**升级步骤**（可选）：
+
+1. 安装重排序模型：
 ```bash
 pip install sentence-transformers
 ```
 
-2. 在检索后添加重排序：
+2. 修改 `rag_enhanced.py`，添加神经网络重排序：
 
 ```python
 from sentence_transformers import CrossEncoder
 
-class RAGSystem:
-    def __init__(self):
+class EnhancedRetriever:
+    def __init__(self, ...):
         # 初始化重排序模型
         self.reranker = CrossEncoder('BAAI/bge-reranker-base')
 
-    def query(self, question: str):
-        # 1. 初步检索（k=20）
-        candidate_docs = self.vectorstore.similarity_search(question, k=20)
+    def _simple_rerank(self, query: str, docs: List[Document], top_k: int):
+        """使用神经网络重排序"""
+        # 构造输入对
+        pairs = [[query, doc.page_content[:512]] for doc in docs]
 
-        # 2. 重排序
-        pairs = [[question, doc.page_content] for doc in candidate_docs]
+        # 预测相关性分数
         scores = self.reranker.predict(pairs)
 
-        # 3. 选择top-5
-        top_indices = scores.argsort()[-5:][::-1]
-        final_docs = [candidate_docs[i] for i in top_indices]
-
-        # 4. 生成答案
-        # ...
+        # 排序并返回
+        scored = list(zip(docs, scores))
+        scored.sort(key=lambda x: x[1], reverse=True)
+        return [doc for doc, _ in scored[:top_k]]
 ```
 
-**预期效果**：
-- 检索精度提升20-30%
-- 减少无关文档干扰
+**预期提升**：
+- 重排序精度：+15-25%（相对当前简化版）
+- 需要额外内存：~500MB
+- 增加响应时间：~1-2秒
 
 ### 方案C：查询改写（Query Rewriting）
 

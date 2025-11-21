@@ -157,9 +157,11 @@ PATHS = {
 # ==================== 高级功能配置 ====================
 
 ADVANCED_FEATURES = {
-    "hybrid_search": False,  # 混合搜索（关键词+语义）
-    "reranking": False,  # 重排序
-    "query_expansion": False,  # 查询扩展
+    "hybrid_search": True,  # 混合搜索（关键词+语义）- 推荐开启
+    "hybrid_weight": 0.3,  # 关键词搜索权重（0-1）
+    "reranking": True,  # 重排序 - 推荐开启
+    "reranking_top_k": 20,  # 重排序前先检索的文档数
+    "query_expansion": False,  # 查询扩展（可能增加延迟）
     "feedback_loop": False,  # 反馈循环
     "multi_modal": False,  # 多模态支持
 }

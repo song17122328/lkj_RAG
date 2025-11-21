@@ -11,9 +11,12 @@ import requests
 
 # 配置文件
 try:
-    from config import LLM_CONFIG
+    from config import LLM_CONFIG, RETRIEVAL, PROMPTS, ADVANCED_FEATURES
 except ImportError:
     LLM_CONFIG = {}
+    RETRIEVAL = {"k": 5}
+    PROMPTS = {}
+    ADVANCED_FEATURES = {}
 
 # LangChain核心组件
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -227,28 +230,63 @@ class RAGSystem:
         """设置问答链"""
         if not self.vectorstore:
             raise ValueError("请先创建向量存储")
-        
-        # 创建检索器
-        retriever = self.vectorstore.as_retriever(
-            search_type="similarity",
-            search_kwargs={"k": 5}
-        )
-        
-        # 自定义提示模板
-        prompt_template = """基于以下上下文回答问题。如果你不知道答案，请说"我不知道"，不要试图编造答案。
+
+        # 从配置获取检索参数
+        search_type = RETRIEVAL.get("search_type", "similarity")
+        k = RETRIEVAL.get("k", 5)
+
+        # 检查是否启用高级检索
+        use_advanced = ADVANCED_FEATURES.get("hybrid_search", False) or ADVANCED_FEATURES.get("reranking", False)
+
+        if use_advanced:
+            # 使用增强检索器
+            try:
+                from rag_enhanced import create_enhanced_retriever
+                enhanced_retriever = create_enhanced_retriever(
+                    vectorstore=self.vectorstore,
+                    documents=self.documents
+                )
+
+                # 创建自定义检索器包装
+                class CustomRetriever:
+                    def __init__(self, enhanced_ret, k):
+                        self.enhanced_ret = enhanced_ret
+                        self.k = k
+
+                    def get_relevant_documents(self, query):
+                        return self.enhanced_ret.retrieve(query, k=self.k)
+
+                retriever = CustomRetriever(enhanced_retriever, k)
+                logger.info(f"已启用增强检索器 (k={k})")
+            except Exception as e:
+                logger.warning(f"增强检索器初始化失败，使用标准检索器: {e}")
+                retriever = self.vectorstore.as_retriever(
+                    search_type=search_type,
+                    search_kwargs={"k": k}
+                )
+        else:
+            # 使用标准检索器
+            retriever = self.vectorstore.as_retriever(
+                search_type=search_type,
+                search_kwargs={"k": k}
+            )
+            logger.info(f"使用标准检索器 (type={search_type}, k={k})")
+
+        # 从配置获取提示模板
+        prompt_template = PROMPTS.get("qa_template", """基于以下上下文回答问题。如果你不知道答案，请说"我不知道"，不要试图编造答案。
 
 上下文信息:
 {context}
 
 问题: {question}
 
-请提供详细且准确的回答:"""
-        
+请提供详细且准确的回答:""")
+
         PROMPT = PromptTemplate(
             template=prompt_template,
             input_variables=["context", "question"]
         )
-        
+
         if self.llm:
             # 创建问答链
             self.qa_chain = RetrievalQA.from_chain_type(
@@ -261,7 +299,7 @@ class RAGSystem:
         else:
             # 创建简单的检索系统（无LLM）
             self.qa_chain = retriever
-        
+
         logger.info("问答链设置完成")
     
     def integrate_knowledge_graph(self, knowledge_graph: nx.DiGraph):
