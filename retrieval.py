@@ -293,7 +293,7 @@ class Retriever:
         return intersection / union if union > 0 else 0.0
 
     def _llm_extract_file_names(self, query: str) -> List[str]:
-        """使用LLM从所有可用文件中选择最相关的文件（新策略）"""
+        """使用LLM从所有可用文件中选择最相关的文件（优化版）"""
         if not self.llm or not self.available_files:
             return []
 
@@ -301,14 +301,21 @@ class Retriever:
             # 格式化所有可用文件列表
             file_list = "\n".join([f"{i+1}. {filename}" for i, filename in enumerate(self.available_files)])
 
-            # 新策略：让LLM从所有文件中选择最相关的
-            prompt = f"""可用文件列表（共{len(self.available_files)}个文件）：
+            # 优化的prompt：引导LLM理解问题关键词和文件名的语义关联
+            prompt = f"""任务：从文件列表中选择最可能包含答案的文档。
+
+可用文件列表（共{len(self.available_files)}个）：
 {file_list}
 
 问题：{query}
 
-你认为答案应该从哪个或哪几个文档中检索？请直接列出文件名，一行一个，不要编号，不要解释。
-如果没有相关文件，输出"无"。
+分析步骤：
+1. 识别问题中的关键实体（组织、标准编号、项目名称、地点等）
+2. 匹配文件名中的相关关键词（注意中英文对应关系）
+3. 选择3-5个最相关的文件
+
+输出格式：直接列出文件名，一行一个，不要编号和解释。
+如果没有明显相关的文件，输出"无"。
 
 输出："""
 
@@ -334,23 +341,44 @@ class Retriever:
                 line = re.sub(r'^[\d\.\-\*\s]+', '', line).strip()  # 移除序号
 
                 # 跳过空行和无意义词
-                if not line or line in ['无', '没有', 'None', '输出：']:
+                if not line or line in ['无', '没有', 'None', '输出：', '输出']:
                     continue
 
                 # 跳过明显的句子（包含完整标点）
-                if '，' in line or '。' in line or '：' in line:
+                if line.count('，') >= 2 or line.count('。') >= 1:
                     continue
 
-                # 验证是否在可用文件列表中（模糊匹配）
+                # 验证是否在可用文件列表中（更宽松的模糊匹配）
                 line_lower = line.lower()
                 for available_file in self.available_files:
-                    # 精确匹配或包含关系
-                    if line_lower == available_file.lower() or line_lower in available_file.lower():
+                    available_lower = available_file.lower()
+
+                    # 1. 精确匹配
+                    if line_lower == available_lower:
                         selected_files.append(available_file)
                         break
 
+                    # 2. 包含关系（任一方向）
+                    if line_lower in available_lower or available_lower in line_lower:
+                        selected_files.append(available_file)
+                        break
+
+                    # 3. 提取主要关键词匹配
+                    line_words = set(re.findall(r'[\w]+', line_lower))
+                    file_words = set(re.findall(r'[\w]+', available_lower))
+                    # 如果70%以上的关键词匹配，认为是同一文件
+                    if line_words and file_words:
+                        match_ratio = len(line_words & file_words) / len(line_words)
+                        if match_ratio >= 0.7:
+                            selected_files.append(available_file)
+                            break
+
             # 去重
             selected_files = list(dict.fromkeys(selected_files))
+
+            print(f"\n[LLM文件选择] 从{len(self.available_files)}个文件中选择了{len(selected_files)}个:")
+            for i, fname in enumerate(selected_files, 1):
+                print(f"  {i}. {fname[:60]}...")
 
             logger.info(f"LLM选择的文件: {selected_files}")
             return selected_files[:5]  # 最多返回5个文件
