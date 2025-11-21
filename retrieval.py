@@ -37,18 +37,21 @@ class Retriever:
     def __init__(self, vectorstore,
                  documents: Optional[List[Document]] = None,
                  config: Optional[Dict] = None,
-                 k: int = 10):
+                 k: int = 10,
+                 llm: Optional[Any] = None):
         """
         Args:
             vectorstore: 向量存储
             documents: 所有文档列表（可选，用于关键词搜索）
             config: 配置字典（可选，默认从 ADVANCED_FEATURES 读取）
             k: 默认返回的文档数量
+            llm: 大语言模型实例（可选，用于智能文件名提取）
         """
         self.vectorstore = vectorstore
         self.documents = documents or []
         self.config = config if config is not None else ADVANCED_FEATURES
         self.k = k
+        self.llm = llm  # 用于智能文件名提取
 
         # 检索策略配置
         self.use_hybrid = self.config.get("hybrid_search", False)
@@ -61,7 +64,7 @@ class Retriever:
         self.diversity_threshold = 0.3   # 多样性阈值
 
         logger.info(f"检索器初始化: hybrid={self.use_hybrid}, "
-                    f"reranking={self.use_reranking}, k={k}")
+                    f"reranking={self.use_reranking}, k={k}, llm={'可用' if llm else '不可用'}")
 
     def retrieve(self, query: str, k: Optional[int] = None) -> List[Document]:
         """执行检索并返回文档列表"""
@@ -270,9 +273,95 @@ class Retriever:
         union = len(set1 | set2)
         return intersection / union if union > 0 else 0.0
 
-    def _extract_file_names(self, query: str) -> List[str]:
+    def _llm_extract_file_names(self, query: str) -> List[str]:
         """
-        从问题中提取可能的文件名
+        使用大模型智能提取问题中涉及的文件名
+
+        Args:
+            query: 用户问题
+
+        Returns:
+            LLM提取的文件名列表
+        """
+        if not self.llm:
+            logger.debug("LLM不可用，跳过智能文件名提取")
+            return []
+
+        try:
+            # 构造提示词，要求LLM识别问题中提到的文件、文档或标准
+            prompt = f"""**任务：** 从以下问题中提取文件名、文档名、报告名或标准编号。
+
+**问题：** {query}
+
+**要求：**
+1. 识别问题中明确提到的文件、文档、报告、标准
+2. 注意关键词："在...报告里"、"根据文档"、"标准"、"规范"等
+3. 如果问题没有明确提到任何文件，直接返回"无"
+4. 只返回文件名，每行一个，不要解释
+
+**格式：**
+```
+文件名1
+文件名2
+```
+
+**回答：**"""
+
+            # 调用LLM
+            from langchain.schema import HumanMessage
+
+            # 根据不同的LLM类型调用
+            try:
+                if hasattr(self.llm, 'invoke'):
+                    # 新版LangChain API
+                    response = self.llm.invoke(prompt)
+                    if hasattr(response, 'content'):
+                        llm_output = response.content
+                    else:
+                        llm_output = str(response)
+                elif hasattr(self.llm, 'predict'):
+                    # 旧版API
+                    llm_output = self.llm.predict(prompt)
+                else:
+                    # 直接调用
+                    llm_output = self.llm(prompt)
+            except Exception as e:
+                logger.warning(f"LLM调用方法不匹配，尝试直接调用: {e}")
+                llm_output = str(self.llm(prompt))
+
+            # 从LLM输出中提取文件名
+            # 移除可能的代码块标记
+            llm_output = re.sub(r'```.*?```', lambda m: m.group(0).replace('```', ''), llm_output, flags=re.DOTALL)
+            llm_output = llm_output.replace('```', '')
+
+            lines = llm_output.strip().split('\n')
+            file_names = []
+
+            for line in lines:
+                line = line.strip()
+                # 跳过空行、"无"、"没有"等
+                if not line or line in ['无', '没有', 'None', 'N/A', '无明确文件', '回答：', '**回答：**']:
+                    continue
+                # 移除序号（如"1. "、"- "、"* "等）
+                line = re.sub(r'^[\d\.\-\*\s]+', '', line)
+                line = line.strip()
+                # 移除markdown格式标记
+                line = re.sub(r'^\*\*|^\*|^-', '', line)
+                line = line.strip()
+
+                if len(line) >= 3:  # 至少3个字符
+                    file_names.append(line)
+
+            logger.info(f"LLM提取文件名: {file_names}")
+            return file_names
+
+        except Exception as e:
+            logger.warning(f"LLM文件名提取失败: {e}")
+            return []
+
+    def _extract_file_names_regex(self, query: str) -> List[str]:
+        """
+        使用正则表达式从问题中提取文件名
 
         支持多种模式：
         - 在...报告里/文档里/的报告中
@@ -329,8 +418,53 @@ class Retriever:
             if len(name) >= 3:  # 至少3个字符
                 cleaned_names.append(name)
 
-        logger.debug(f"从问题中提取文件名: {cleaned_names}")
+        logger.debug(f"正则提取文件名: {cleaned_names}")
         return cleaned_names
+
+    def _extract_file_names(self, query: str) -> List[str]:
+        """
+        综合提取文件名（正则 + LLM）
+
+        策略：
+        1. 使用正则表达式提取明确的模式
+        2. 使用LLM提取语义层面的文件引用
+        3. 合并去重
+
+        Args:
+            query: 用户问题
+
+        Returns:
+            提取的文件名列表（已去重）
+        """
+        # 1. 正则提取
+        regex_names = self._extract_file_names_regex(query)
+
+        # 2. LLM提取
+        llm_names = self._llm_extract_file_names(query)
+
+        # 3. 合并去重（保持顺序，LLM的结果优先级更高）
+        all_names = []
+        seen = set()
+
+        # 先添加LLM提取的（语义理解更准确）
+        for name in llm_names:
+            name_lower = name.lower()
+            if name_lower not in seen:
+                all_names.append(name)
+                seen.add(name_lower)
+
+        # 再添加正则提取的（补充遗漏）
+        for name in regex_names:
+            name_lower = name.lower()
+            if name_lower not in seen:
+                all_names.append(name)
+                seen.add(name_lower)
+
+        logger.info(f"文件名提取完成: 正则={len(regex_names)}, LLM={len(llm_names)}, 合并后={len(all_names)}")
+        if all_names:
+            logger.info(f"提取的文件名: {all_names}")
+
+        return all_names
 
     def _boost_file_name_matches(self, query: str, docs: List[Document]) -> List[Document]:
         """
@@ -437,9 +571,10 @@ class Retriever:
 def create_retriever(vectorstore,
                      documents: Optional[List[Document]] = None,
                      config: Optional[Dict] = None,
-                     k: int = 10) -> Retriever:
+                     k: int = 10,
+                     llm: Optional[Any] = None) -> Retriever:
     """创建检索器实例的工厂函数"""
-    return Retriever(vectorstore, documents, config, k)
+    return Retriever(vectorstore, documents, config, k, llm)
 
 
 class QueryExpander:

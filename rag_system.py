@@ -256,7 +256,8 @@ class RAGSystem:
                 retriever_instance = Retriever(
                     vectorstore=self.vectorstore,
                     documents=self.documents,
-                    k=k
+                    k=k,
+                    llm=self.llm  # 传入LLM用于智能文件名提取
                 )
                 logger.info("使用定制检索器（带去重和多样性约束）")
 
