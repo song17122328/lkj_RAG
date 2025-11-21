@@ -297,7 +297,7 @@ class Retriever:
 
             # 清理输出：移除思考标签和代码块
             llm_output = re.sub(r'<think>.*?</think>', '', llm_output, flags=re.DOTALL | re.IGNORECASE)
-            llm_output = re.sub(r'</think>.*$', '', llm_output, flags=re.DOTALL)
+            llm_output = re.sub(r'</?think>', '', llm_output, flags=re.IGNORECASE)  # 移除任何残留的think标签
             llm_output = llm_output.replace('```', '').strip()
 
             # 提取有效行：简单过滤即可
@@ -433,14 +433,20 @@ class Retriever:
 
         print(f"\n[文件验证] 匹配结果:")
         for name in extracted_names:
-            found = False
+            matches = []
             for source in all_sources:
                 if self._fuzzy_match(name, source):
                     matched_sources.add(source)
-                    print(f"  ✓ '{name[:30]}...' -> {os.path.basename(source)[:35]}")
-                    found = True
-                    break
-            if not found:
+                    matches.append(os.path.basename(source))
+
+            if matches:
+                # 只显示第一个匹配，如果有多个则显示数量
+                first_match = matches[0][:35]
+                if len(matches) > 1:
+                    print(f"  ✓ '{name[:30]}...' -> {first_match} (+{len(matches)-1}个)")
+                else:
+                    print(f"  ✓ '{name[:30]}...' -> {first_match}")
+            else:
                 print(f"  ✗ '{name[:30]}...'")
 
         # 文档排序
@@ -484,48 +490,6 @@ def create_retriever(vectorstore,
 
 
 class QueryExpander:
-    """查询扩展器，用于生成语义相近的查询"""
-
-    @staticmethod
-    def expand_query(query: str) -> List[str]:
-        expanded = [query]
-        synonyms = {
-            "中标": ["获得", "承揽", "签约"],
-            "金额": ["价格", "费用", "总额"],
-            "百分比": ["比例", "占比", "百分率"],
-            "目标": ["指标", "要求", "计划"],
-        }
-
-        for word, syns in synonyms.items():
-            if word in query:
-                for syn in syns:
-                    expanded.append(query.replace(word, syn))
-
-        return expanded[:3]
-
-
-class Reranker:
-    """基于关键词重叠的简单重排序器"""
-
-    @staticmethod
-    def rerank_by_question_similarity(documents: List[Document],
-                                      question: str,
-                                      top_k: int = 5) -> List[Document]:
-        question_words = set(question.lower().split())
-        scored_docs = []
-
-        for doc in documents:
-            doc_words = set(doc.page_content.lower().split())
-            intersection = len(question_words & doc_words)
-            union = len(question_words | doc_words)
-            similarity = intersection / union if union > 0 else 0
-            scored_docs.append((doc, similarity))
-
-        scored_docs.sort(key=lambda x: x[1], reverse=True)
-        return [doc for doc, _ in scored_docs[:top_k]]
-
-
-class QueryExpander:
     """查询扩展器，用于改进查询质量"""
 
     @staticmethod
@@ -541,7 +505,7 @@ class QueryExpander:
         """
         expanded = [query]
 
-        # 1. 添加同义词（这里简化处理，实际应使用词库）
+        # 添加同义词（这里简化处理，实际应使用词库）
         synonyms = {
             "中标": ["获得", "承揽", "签约"],
             "金额": ["价格", "费用", "总额"],
@@ -558,7 +522,7 @@ class QueryExpander:
 
 
 class Reranker:
-    """重排序器"""
+    """重排序器，基于关键词重叠"""
 
     @staticmethod
     def rerank_by_question_similarity(
@@ -577,13 +541,12 @@ class Reranker:
         Returns:
             重排序后的文档列表
         """
-        # 简单的相似度计算：基于关键词重叠
+        # 简单的相似度计算：基于关键词重叠（Jaccard相似度）
         question_words = set(question.lower().split())
 
         scored_docs = []
         for doc in documents:
             doc_words = set(doc.page_content.lower().split())
-            # Jaccard相似度
             intersection = len(question_words & doc_words)
             union = len(question_words | doc_words)
             similarity = intersection / union if union > 0 else 0
