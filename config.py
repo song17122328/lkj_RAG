@@ -189,7 +189,7 @@ SYSTEM = {
     "cache_ttl": 3600,  # 缓存过期时间（秒）
     "max_workers": 4,  # 并行处理的最大工作进程数
     "timeout": 30,  # 请求超时时间（秒）
-    "enable_parallel_processing": True,  # 是否启用多进程并行处理（文档加载和表格提取）
+    "enable_parallel_processing": False,  # 临时禁用并行处理进行调试
 }
 
 # ==================== 文件路径配置 ====================

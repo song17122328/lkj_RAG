@@ -209,14 +209,24 @@ class ParallelDocumentProcessor:
             ctx = mp.get_context('spawn')
             with ctx.Pool(processes=self.n_workers) as pool:
                 # map会按顺序返回结果
+                logger.info(f"启动进程池，等待处理结果...")
                 results = pool.map(process_func, doc_items)
 
+                logger.info(f"进程池返回了 {len(results)} 个结果")
+
                 # 合并所有结果
-                for doc_documents in results:
+                for i, doc_documents in enumerate(results):
+                    if doc_documents is None:
+                        logger.warning(f"结果 {i} 为 None，跳过")
+                        continue
+                    logger.debug(f"结果 {i}: {len(doc_documents)} 个documents")
                     all_documents.extend(doc_documents)
 
         except Exception as e:
             logger.error(f"并行处理失败: {e}，降级到串行处理")
+            import traceback
+            logger.error(traceback.format_exc())
+
             # 降级到串行处理
             for doc_item in doc_items:
                 try:
@@ -224,8 +234,10 @@ class ParallelDocumentProcessor:
                     all_documents.extend(doc_documents)
                 except Exception as doc_e:
                     logger.error(f"处理文档失败 {doc_item[0]}: {doc_e}")
+                    import traceback
+                    logger.error(traceback.format_exc())
                     continue
 
-        logger.info(f"并行处理完成，共 {len(all_documents)} 个chunks")
+        logger.info(f"并行处理完成，共 {len(all_documents)} 个chunks（预期: 每文档约50-100个）")
 
         return all_documents
