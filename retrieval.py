@@ -227,29 +227,39 @@ class Retriever:
         if extracted_files:
             # 筛选：只保留匹配文件的documents
             filtered_docs = []
-            for doc in self.documents:
-                source = doc.metadata.get('source', '')
-                if any(self._fuzzy_match(fname, source) for fname in extracted_files):
-                    filtered_docs.append(doc)
+
+            # 如果self.documents不为空，从中筛选
+            if self.documents:
+                for doc in self.documents:
+                    source = doc.metadata.get('source', '')
+                    if any(self._fuzzy_match(fname, source) for fname in extracted_files):
+                        filtered_docs.append(doc)
+            else:
+                # 如果self.documents为空（从existing vectorstore加载的情况）
+                # 方案：先从全库中检索大量候选，再根据文件名过滤
+                logger.info("路径1: documents为空，使用vectorstore直接检索并过滤")
+                try:
+                    # 从vectorstore中检索大量候选（k*10）
+                    candidate_docs = self.vectorstore.similarity_search(query, k=k*10)
+
+                    # 根据文件名过滤
+                    for doc in candidate_docs:
+                        source = doc.metadata.get('source', '')
+                        if any(self._fuzzy_match(fname, source) for fname in extracted_files):
+                            filtered_docs.append(doc)
+
+                    logger.info(f"路径1: 从{len(candidate_docs)}个候选中筛选出{len(filtered_docs)}个匹配文档")
+                except Exception as e:
+                    logger.warning(f"路径1检索失败: {e}")
+                    filtered_docs = []
 
             path1_count = len(filtered_docs)
 
             if filtered_docs:
-                # 在筛选后的子集中创建临时vectorstore并检索
-                try:
-                    # 创建临时vectorstore（使用相同的embedding函数）
-                    temp_vectorstore = Chroma.from_documents(
-                        documents=filtered_docs,
-                        embedding=self.vectorstore._embedding_function
-                    )
-
-                    # 在子集中检索（检索更多候选，为后续reranking准备）
-                    path1_docs = temp_vectorstore.similarity_search(query, k=k*2)
-                    logger.info(f"路径1（文件引导）: 筛选={path1_count}个文档, 召回={len(path1_docs)}个chunks")
-
-                except Exception as e:
-                    logger.warning(f"路径1检索失败: {e}，跳过文件引导路径")
-                    path1_docs = []
+                # 路径1策略优化：直接使用筛选出的文档，不创建临时vectorstore
+                # 原因：创建临时vectorstore效率低，且filtered_docs已经是相关文档
+                path1_docs = filtered_docs[:k*2]  # 限制数量，为后续reranking准备
+                logger.info(f"路径1（文件引导）: 筛选={path1_count}个chunks, 返回前{len(path1_docs)}个")
             else:
                 logger.info(f"路径1（文件引导）: 提取了{len(extracted_files)}个文件名，但未匹配到文档")
         else:
