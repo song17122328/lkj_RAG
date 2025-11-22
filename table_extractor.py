@@ -9,6 +9,7 @@
 """
 
 import re
+import json
 import logging
 from typing import List, Dict, Any, Tuple, Optional
 from dataclasses import dataclass
@@ -314,19 +315,21 @@ class TableExtractor:
         )
 
         # 创建metadata
+        # ChromaDB只支持基本类型(str, int, float, bool)
+        # 将列表和字典转换为字符串
         metadata = {
             'source': source,
             'content_type': 'table',
             'table_id': table_id,
             'column_count': len(headers),
             'row_count': len(rows),
-            'headers': headers,
+            'headers': ', '.join(headers),  # 列表转为字符串
             'table_summary': self._generate_table_summary(headers, rows),
-            # 存储表格数据的JSON表示（用于精确查询）
-            'table_data': {
+            # 存储表格数据的JSON字符串（用于精确查询）
+            'table_data': json.dumps({
                 'headers': headers,
                 'rows': rows
-            }
+            }, ensure_ascii=False)
         }
 
         return Document(

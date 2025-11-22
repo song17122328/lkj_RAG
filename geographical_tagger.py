@@ -122,15 +122,19 @@ class GeographicalTagger:
         enriched_metadata = metadata.copy()
         enriched_metadata.update({
             'has_geographical_info': True,
-            'provinces': list(provinces),
-            'cities': list(cities),
+            # ChromaDB只支持基本类型，将集合转为逗号分隔字符串
+            'provinces': ', '.join(sorted(provinces)),
+            'cities': ', '.join(sorted(cities)),
             'geographic_scope': geographic_scope,
         })
 
         # 4. 添加省-市关联（用于省级范围查询）
         province_relations = self._identify_province_relations(provinces, cities)
         if province_relations:
-            enriched_metadata['province_city_relations'] = province_relations
+            # 将字典转为字符串格式："省1:市1,市2; 省2:市3,市4"
+            relations_str = '; '.join([f"{prov}:{','.join(cities)}"
+                                       for prov, cities in province_relations.items()])
+            enriched_metadata['province_city_relations'] = relations_str
 
         logger.debug(f"提取地理信息: 省={list(provinces)}, 市={list(cities)}, 范围={geographic_scope}")
 
@@ -331,7 +335,8 @@ class GeographicalQueryAnalyzer:
 
         return {
             'has_geographical_intent': bool(provinces or cities or scope),
-            'target_provinces': list(provinces),
-            'target_cities': list(cities),
+            # ChromaDB只支持基本类型，将集合转为逗号分隔字符串
+            'target_provinces': ', '.join(sorted(provinces)),
+            'target_cities': ', '.join(sorted(cities)),
             'scope': scope
         }

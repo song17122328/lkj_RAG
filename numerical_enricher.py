@@ -102,15 +102,17 @@ class NumericalDataEnricher:
         enriched_metadata.update({
             'contains_numerical_data': True,
             'numerical_count': len(numerical_entities),
-            'numerical_types': list(set(e.entity_type for e in numerical_entities)),
-            'numerical_values': [e.value for e in numerical_entities],
+            # ChromaDB只支持基本类型，将列表转为逗号分隔字符串
+            'numerical_types': ', '.join(set(e.entity_type for e in numerical_entities)),
+            'numerical_values': ', '.join([e.value for e in numerical_entities]),
             'numerical_summary': numerical_summary,
         })
 
         # 识别语义上下文
         semantic_context = self._identify_semantic_context(text)
         if semantic_context:
-            enriched_metadata['numerical_context'] = semantic_context
+            # ChromaDB只支持基本类型，将列表转为逗号分隔字符串
+            enriched_metadata['numerical_context'] = ', '.join(semantic_context)
 
         # 4. 在文本前添加摘要（可选，如果摘要足够有价值）
         if numerical_summary:
