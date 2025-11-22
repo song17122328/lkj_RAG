@@ -40,6 +40,10 @@ class TableExtractor:
         """
         从Markdown文本中提取所有表格并转换为Document对象
 
+        支持两种格式：
+        1. Markdown格式表格（| 分隔）
+        2. HTML格式表格（<table>标签）
+
         Args:
             markdown_text: Markdown格式的文本
             source: 文档来源（文件名）
@@ -50,6 +54,13 @@ class TableExtractor:
         tables = []
         table_id = 0
 
+        # === 步骤1: 提取HTML格式表格 ===
+        html_tables = self._extract_html_tables(markdown_text, source)
+        for html_table in html_tables:
+            tables.append(html_table)
+            table_id += 1
+
+        # === 步骤2: 提取Markdown格式表格 ===
         # 分割文本为行
         lines = markdown_text.split('\n')
 
@@ -73,15 +84,138 @@ class TableExtractor:
                         )
                         tables.append(table_doc)
                         table_id += 1
-                        logger.info(f"提取表格 {table_id} from {source}: "
+                        logger.info(f"提取Markdown表格 {table_id} from {source}: "
                                    f"{len(parsed_table['rows'])}行 × {len(parsed_table['headers'])}列")
 
                 i = end_idx
             else:
                 i += 1
 
-        logger.info(f"从 {source} 中提取了 {len(tables)} 个表格")
+        logger.info(f"从 {source} 中提取了 {len(tables)} 个表格 (HTML: {len(html_tables)}, Markdown: {len(tables) - len(html_tables)})")
         return tables
+
+    def _extract_html_tables(self, markdown_text: str, source: str = "") -> List[Document]:
+        """
+        从Markdown文本中提取HTML格式的表格
+
+        Args:
+            markdown_text: Markdown格式的文本
+            source: 文档来源（文件名）
+
+        Returns:
+            包含HTML表格数据的Document列表
+        """
+        tables = []
+        table_id = 0
+
+        # 查找所有<table>...</table>标签
+        table_pattern = r'<table>(.*?)</table>'
+        table_matches = re.findall(table_pattern, markdown_text, re.DOTALL | re.IGNORECASE)
+
+        for table_match in table_matches:
+            try:
+                # 解析HTML表格
+                parsed_table = self._parse_html_table(table_match)
+
+                if parsed_table and len(parsed_table['rows']) >= self.min_rows:
+                    # 创建表格Document
+                    table_doc = self._create_table_document(
+                        parsed_table,
+                        source,
+                        table_id
+                    )
+                    tables.append(table_doc)
+                    table_id += 1
+                    logger.debug(f"提取HTML表格 {table_id} from {source}: "
+                                f"{len(parsed_table['rows'])}行 × {len(parsed_table['headers'])}列")
+            except Exception as e:
+                logger.warning(f"解析HTML表格失败 ({source}): {e}")
+                continue
+
+        return tables
+
+    def _parse_html_table(self, html_content: str) -> Optional[Dict[str, Any]]:
+        """
+        解析HTML表格内容为结构化数据
+
+        Args:
+            html_content: <table>标签内的HTML内容
+
+        Returns:
+            {
+                'headers': [...],
+                'rows': [[...], [...], ...]
+            }
+        """
+        # 提取所有<tr>行
+        row_pattern = r'<tr>(.*?)</tr>'
+        rows_html = re.findall(row_pattern, html_content, re.DOTALL | re.IGNORECASE)
+
+        if not rows_html:
+            return None
+
+        headers = []
+        rows = []
+
+        for i, row_html in enumerate(rows_html):
+            # 提取单元格：优先<th>，其次<td>
+            th_pattern = r'<th[^>]*>(.*?)</th>'
+            td_pattern = r'<td[^>]*>(.*?)</td>'
+
+            ths = re.findall(th_pattern, row_html, re.DOTALL | re.IGNORECASE)
+            tds = re.findall(td_pattern, row_html, re.DOTALL | re.IGNORECASE)
+
+            # 清理HTML标签和空白
+            cells = []
+            if ths:
+                cells = [self._clean_html(cell) for cell in ths]
+            elif tds:
+                cells = [self._clean_html(cell) for cell in tds]
+
+            if not cells:
+                continue
+
+            # 第一行作为表头（如果有<th>标签或第一行）
+            if i == 0 and (ths or not headers):
+                headers = cells
+            else:
+                # 如果没有表头，第一行的单元格数量作为列数
+                if not headers:
+                    headers = [f"列{j+1}" for j in range(len(cells))]
+
+                rows.append(cells)
+
+        # 如果第一行被当作表头但实际是数据，需要重新分配
+        if not rows and headers:
+            rows = [headers]
+            headers = [f"列{j+1}" for j in range(len(rows[0]))]
+
+        return {
+            'headers': headers,
+            'rows': rows
+        }
+
+    def _clean_html(self, html_text: str) -> str:
+        """
+        清理HTML标签和特殊字符
+
+        Args:
+            html_text: 包含HTML标签的文本
+
+        Returns:
+            清理后的纯文本
+        """
+        # 移除所有HTML标签
+        text = re.sub(r'<[^>]+>', '', html_text)
+        # 解码HTML实体
+        text = text.replace('&nbsp;', ' ')
+        text = text.replace('&lt;', '<')
+        text = text.replace('&gt;', '>')
+        text = text.replace('&amp;', '&')
+        text = text.replace('&quot;', '"')
+        # 清理多余空白
+        text = ' '.join(text.split())
+        return text.strip()
 
     def _is_table_row(self, line: str) -> bool:
         """判断是否为表格行"""
