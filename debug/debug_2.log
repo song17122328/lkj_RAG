@@ -1,0 +1,358 @@
+/data/home/likejie/miniconda3/envs/kasike_rag/lib/python3.10/site-packages/langchain/embeddings/__init__.py:29: LangChainDeprecationWarning: Importing embeddings from langchain is deprecated. Importing from langchain will no longer be supported as of langchain==0.2.0. Please import from langchain-community instead:
+
+`from langchain_community.embeddings import OpenAIEmbeddings`.
+
+To install langchain-community run `pip install -U langchain-community`.
+  warnings.warn(
+/data/home/likejie/miniconda3/envs/kasike_rag/lib/python3.10/site-packages/langchain/embeddings/__init__.py:29: LangChainDeprecationWarning: Importing embeddings from langchain is deprecated. Importing from langchain will no longer be supported as of langchain==0.2.0. Please import from langchain-community instead:
+
+`from langchain_community.embeddings import HuggingFaceEmbeddings`.
+
+To install langchain-community run `pip install -U langchain-community`.
+  warnings.warn(
+/data/home/likejie/miniconda3/envs/kasike_rag/lib/python3.10/site-packages/langchain/vectorstores/__init__.py:35: LangChainDeprecationWarning: Importing vector stores from langchain is deprecated. Importing from langchain will no longer be supported as of langchain==0.2.0. Please import from langchain-community instead:
+
+`from langchain_community.vectorstores import Chroma`.
+
+To install langchain-community run `pip install -U langchain-community`.
+  warnings.warn(
+2025-11-22 14:18:54,419 - INFO - 已加载zh语言模型: zh_core_web_sm
+2025-11-22 14:18:54,862 - INFO - 已加载en语言模型: en_core_web_sm
+2025-11-22 14:18:55,795 - INFO - Note: detected 96 virtual cores but NumExpr set to maximum of 64, check "NUMEXPR_MAX_THREADS" environment variable.
+2025-11-22 14:18:55,795 - INFO - Note: NumExpr detected 96 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 16.
+2025-11-22 14:18:55,795 - INFO - NumExpr defaulting to 16 threads.
+2025-11-22 14:18:57,745 - INFO - Load pretrained SentenceTransformer: sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
+2025-11-22 14:19:10,441 - INFO - 从vLLM服务获取到模型: DeepSeek-R1-Distill-Qwen-14B
+/data/home/likejie/miniconda3/envs/kasike_rag/lib/python3.10/site-packages/langchain_core/_api/deprecation.py:119: LangChainDeprecationWarning: The class `ChatOpenAI` was deprecated in LangChain 0.0.10 and will be removed in 0.3.0. An updated version of the class exists in the langchain-openai package and should be used instead. To use it run `pip install -U langchain-openai` and import as `from langchain_openai import ChatOpenAI`.
+  warn_deprecated(
+2025-11-22 14:19:11,034 - INFO - 已配置vLLM，服务地址: http://127.0.0.1:8910/v1, 模型: DeepSeek-R1-Distill-Qwen-14B, max_tokens: 2048, temperature: 0.0
+2025-11-22 14:19:11,035 - INFO - === 使用已有向量库进行检索 ===
+2025-11-22 14:19:11,035 - INFO - 加载已有向量存储: ./vectorstore
+2025-11-22 14:19:11,187 - INFO - Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+2025-11-22 14:19:11,341 - INFO - 向量存储加载完成
+/data/home/likejie/miniconda3/envs/kasike_rag/lib/python3.10/site-packages/langchain/vectorstores/__init__.py:35: LangChainDeprecationWarning: Importing vector stores from langchain is deprecated. Importing from langchain will no longer be supported as of langchain==0.2.0. Please import from langchain-community instead:
+
+`from langchain_community.vectorstores import Chroma`.
+
+To install langchain-community run `pip install -U langchain-community`.
+  warnings.warn(
+2025-11-22 14:19:15,987 - INFO - Use pytorch device: cuda:0
+2025-11-22 14:19:16,886 - INFO - 已加载Cross-Encoder reranker: BAAI/bge-reranker-base
+2025-11-22 14:19:16,889 - INFO - documents为空，尝试从vectorstore中提取可用文件...
+2025-11-22 14:19:17,275 - INFO - 从vectorstore中提取到108个文件
+2025-11-22 14:19:17,282 - INFO - 检索器初始化: hybrid=True, reranking=True, multipath=True, k=5, llm=可用, 可用文件数=108, reranker=Cross-Encoder, bm25=不可用
+2025-11-22 14:19:17,282 - INFO - 使用定制检索器（带去重和多样性约束）
+2025-11-22 14:19:17,283 - INFO - 已启用检索器 (k=5)
+2025-11-22 14:19:17,284 - INFO - 问答链设置完成
+2025-11-22 14:19:17,284 - INFO - 处理问题: 2024 年，株洲中车时代电气股份有限公司中标金额是多少？
+/data/home/likejie/miniconda3/envs/kasike_rag/lib/python3.10/site-packages/langchain_core/_api/deprecation.py:119: LangChainDeprecationWarning: The method `Chain.__call__` was deprecated in langchain 0.1.0 and will be removed in 0.2.0. Use invoke instead.
+  warn_deprecated(
+2025-11-22 14:19:35,947 - INFO - HTTP Request: POST http://127.0.0.1:8910/v1/chat/completions "HTTP/1.1 200 OK"
+2025-11-22 14:19:35,960 - INFO - LLM选择的文件: []
+2025-11-22 14:19:35,960 - INFO - 文件名提取完成: 正则=0, LLM=0, 合并后=0
+2025-11-22 14:19:35,960 - INFO - 路径1（文件引导）: 未提取到文件名，跳过
+2025-11-22 14:19:36,345 - INFO - 路径2（全库）: 召回=15个chunks
+
+[LLM文件选择] 从108个文件中选择了0个:
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|██████████| 1/1 [00:00<00:00,  3.39it/s]Batches: 100%|██████████| 1/1 [00:00<00:00,  3.39it/s]
+2025-11-22 14:19:36,644 - INFO - 多路检索: Cross-Encoder重排序完成，从5个候选中选出5个
+2025-11-22 14:19:36,644 - INFO - 多路检索完成: 路径1=0, 路径2=15, 合并去重=5, 最终返回=5
+2025-11-22 14:19:42,756 - INFO - HTTP Request: POST http://127.0.0.1:8910/v1/chat/completions "HTTP/1.1 200 OK"
+2025-11-22 14:19:42,757 - INFO - 处理问题: 根据欧洲铁路局 2025-2027 年单一规划文件，机构注册系统迁移到知识图谱（knowledge graph）方法的目标进度在 2025 年底应达到多少百分比？
+2025-11-22 14:19:57,582 - INFO - HTTP Request: POST http://127.0.0.1:8910/v1/chat/completions "HTTP/1.1 200 OK"
+2025-11-22 14:19:57,588 - INFO - LLM选择的文件: ['era spd 2023-2025.md', 'era spd 2024-2026.md']
+2025-11-22 14:19:57,588 - INFO - 文件名提取完成: 正则=1, LLM=2, 合并后=3
+2025-11-22 14:19:57,588 - INFO - 提取的文件名: ['era spd 2023-2025.md', 'era spd 2024-2026.md', '2025-2027']
+2025-11-22 14:19:57,588 - INFO - 路径1（文件引导）: 提取了3个文件名，但未匹配到文档
+2025-11-22 14:19:57,711 - INFO - 路径2（全库）: 召回=18个chunks
+
+[LLM文件选择] 从108个文件中选择了2个:
+  1. era spd 2023-2025.md...
+  2. era spd 2024-2026.md...
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|██████████| 1/1 [00:00<00:00, 21.27it/s]
+2025-11-22 14:19:57,760 - INFO - 多路检索: Cross-Encoder重排序完成，从5个候选中选出5个
+2025-11-22 14:19:57,760 - INFO - 多路检索完成: 路径1=0, 路径2=18, 合并去重=5, 最终返回=5
+2025-11-22 14:20:07,103 - INFO - HTTP Request: POST http://127.0.0.1:8910/v1/chat/completions "HTTP/1.1 200 OK"
+2025-11-22 14:20:07,105 - INFO - 处理问题: 在 UIC 的报告里，根据国际能源署的分析，铁路的市场份额需要增长多少才能在本十年内实现《巴黎协定》的目标？
+2025-11-22 14:20:23,806 - INFO - HTTP Request: POST http://127.0.0.1:8910/v1/chat/completions "HTTP/1.1 200 OK"
+2025-11-22 14:20:23,810 - INFO - LLM选择的文件: ['uic_work_programme_2023-2025.md']
+2025-11-22 14:20:23,810 - INFO - 文件名提取完成: 正则=2, LLM=1, 合并后=3
+2025-11-22 14:20:23,810 - INFO - 提取的文件名: ['uic_work_programme_2023-2025.md', '巴黎协定', 'UIC']
+2025-11-22 14:20:23,810 - INFO - 路径1（文件引导）: 提取了3个文件名，但未匹配到文档
+2025-11-22 14:20:23,882 - INFO - 路径2（全库）: 召回=15个chunks
+
+[LLM文件选择] 从108个文件中选择了1个:
+  1. uic_work_programme_2023-2025.md...
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|██████████| 1/1 [00:00<00:00, 31.73it/s]
+2025-11-22 14:20:23,928 - INFO - 多路检索: Cross-Encoder重排序完成，从5个候选中选出5个
+2025-11-22 14:20:23,929 - INFO - 多路检索完成: 路径1=0, 路径2=15, 合并去重=5, 最终返回=5
+2025-11-22 14:20:33,907 - INFO - HTTP Request: POST http://127.0.0.1:8910/v1/chat/completions "HTTP/1.1 200 OK"
+2025-11-22 14:20:33,909 - INFO - 处理问题: 参照 IEEE 1474.1 的定义，附件 D (Typical safe braking model) 中对安全制动模型的描述，在“滑行时间 (Coast time, C)”期间，列车被假定处于什么状态？
+2025-11-22 14:20:46,122 - INFO - HTTP Request: POST http://127.0.0.1:8910/v1/chat/completions "HTTP/1.1 200 OK"
+2025-11-22 14:20:46,125 - INFO - LLM选择的文件: ['IEEE 1474.1-2004.md', 'IEEE Std 1474.1-2025 IEEE Standard for Communications-Based Train Control (CBTC) Performance and Functional Requirements.md']
+2025-11-22 14:20:46,126 - INFO - 文件名提取完成: 正则=1, LLM=2, 合并后=3
+2025-11-22 14:20:46,126 - INFO - 提取的文件名: ['IEEE 1474.1-2004.md', 'IEEE Std 1474.1-2025 IEEE Standard for Communications-Based Train Control (CBTC) Performance and Functional Requirements.md', 'IEEE 1474.1']
+2025-11-22 14:20:46,126 - INFO - 路径1（文件引导）: 提取了3个文件名，但未匹配到文档
+2025-11-22 14:20:46,263 - INFO - 路径2（全库）: 召回=14个chunks
+
+[LLM文件选择] 从108个文件中选择了2个:
+  1. IEEE 1474.1-2004.md...
+  2. IEEE Std 1474.1-2025 IEEE Standard for Communications-Based ...
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|██████████| 1/1 [00:00<00:00, 34.53it/s]
+2025-11-22 14:20:46,306 - INFO - 多路检索: Cross-Encoder重排序完成，从5个候选中选出5个
+2025-11-22 14:20:46,306 - INFO - 多路检索完成: 路径1=0, 路径2=14, 合并去重=5, 最终返回=5
+2025-11-22 14:20:57,389 - INFO - HTTP Request: POST http://127.0.0.1:8910/v1/chat/completions "HTTP/1.1 200 OK"
+2025-11-22 14:20:57,390 - INFO - 处理问题: 在 Manresa 车站的事件调查报告中，列车 78443 被授权越过 3023 进站信号机后，何时（日期和时间）发生了列车 95218 最终启动了行驶，并最终导致两列车存在碰撞风险？
+2025-11-22 14:21:09,212 - INFO - HTTP Request: POST http://127.0.0.1:8910/v1/chat/completions "HTTP/1.1 200 OK"
+2025-11-22 14:21:09,214 - INFO - LLM选择的文件: ['ES-10306- 202270 0815 IF Manresa (english version).md']
+2025-11-22 14:21:09,215 - INFO - 文件名提取完成: 正则=0, LLM=1, 合并后=1
+2025-11-22 14:21:09,215 - INFO - 提取的文件名: ['ES-10306- 202270 0815 IF Manresa (english version).md']
+2025-11-22 14:21:09,215 - INFO - 路径1（文件引导）: 提取了1个文件名，但未匹配到文档
+2025-11-22 14:21:09,347 - INFO - 路径2（全库）: 召回=16个chunks
+
+[LLM文件选择] 从108个文件中选择了1个:
+  1. ES-10306- 202270 0815 IF Manresa (english version).md...
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|██████████| 1/1 [00:00<00:00, 24.56it/s]
+2025-11-22 14:21:09,408 - INFO - 多路检索: Cross-Encoder重排序完成，从5个候选中选出5个
+2025-11-22 14:21:09,408 - INFO - 多路检索完成: 路径1=0, 路径2=16, 合并去重=5, 最终返回=5
+2025-11-22 14:21:25,982 - INFO - HTTP Request: POST http://127.0.0.1:8910/v1/chat/completions "HTTP/1.1 200 OK"
+2025-11-22 14:21:25,984 - INFO - 处理问题: 南京地铁 S7 号线的运营里程，在江苏省内已运营地铁长度中排第几？
+2025-11-22 14:21:37,643 - INFO - HTTP Request: POST http://127.0.0.1:8910/v1/chat/completions "HTTP/1.1 200 OK"
+2025-11-22 14:21:37,649 - INFO - LLM选择的文件: ['城市轨道交通2024年度主要装备统计报告（协会信息第5期总第68期）.md', '城市轨道交通2024年度统计分析报告（协会信息第4期总第67期）.md']
+2025-11-22 14:21:37,649 - INFO - 文件名提取完成: 正则=0, LLM=2, 合并后=2
+2025-11-22 14:21:37,649 - INFO - 提取的文件名: ['城市轨道交通2024年度主要装备统计报告（协会信息第5期总第68期）.md', '城市轨道交通2024年度统计分析报告（协会信息第4期总第67期）.md']
+2025-11-22 14:21:37,649 - INFO - 路径1（文件引导）: 提取了2个文件名，但未匹配到文档
+2025-11-22 14:21:37,746 - INFO - 路径2（全库）: 召回=16个chunks
+
+[LLM文件选择] 从108个文件中选择了2个:
+  1. 城市轨道交通2024年度主要装备统计报告（协会信息第5期总第68期）.md...
+  2. 城市轨道交通2024年度统计分析报告（协会信息第4期总第67期）.md...
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|██████████| 1/1 [00:00<00:00, 29.02it/s]
+2025-11-22 14:21:37,801 - INFO - 多路检索: Cross-Encoder重排序完成，从5个候选中选出5个
+2025-11-22 14:21:37,801 - INFO - 多路检索完成: 路径1=0, 路径2=16, 合并去重=5, 最终返回=5
+2025-11-22 14:21:49,780 - INFO - HTTP Request: POST http://127.0.0.1:8910/v1/chat/completions "HTTP/1.1 200 OK"
+2025-11-22 14:21:49,781 - INFO - 处理问题: 车辆外部移动实体的场景要素：根据 GB/T 43267—2023（预期功能安全），在场景要素结构中，可移动实体的第 2 层要素和第 3 层要素分别是什么？（需完整列出第 3 层中所有实体类型）
+2025-11-22 14:22:05,127 - INFO - HTTP Request: POST http://127.0.0.1:8910/v1/chat/completions "HTTP/1.1 200 OK"
+2025-11-22 14:22:05,129 - INFO - LLM选择的文件: []
+2025-11-22 14:22:05,129 - INFO - 文件名提取完成: 正则=2, LLM=0, 合并后=2
+2025-11-22 14:22:05,129 - INFO - 提取的文件名: ['GB/T 43267—2023', '3267—2023']
+2025-11-22 14:22:05,129 - INFO - 路径1（文件引导）: 提取了2个文件名，但未匹配到文档
+2025-11-22 14:22:05,221 - INFO - 路径2（全库）: 召回=19个chunks
+
+[LLM文件选择] 从108个文件中选择了0个:
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|██████████| 1/1 [00:00<00:00, 36.38it/s]
+2025-11-22 14:22:05,267 - INFO - 多路检索: Cross-Encoder重排序完成，从5个候选中选出5个
+2025-11-22 14:22:05,267 - INFO - 多路检索完成: 路径1=0, 路径2=19, 合并去重=5, 最终返回=5
+2025-11-22 14:22:33,362 - INFO - HTTP Request: POST http://127.0.0.1:8910/v1/chat/completions "HTTP/1.1 200 OK"
+2025-11-22 14:22:33,363 - INFO - 处理问题: 根据文档《2024_Communications-Based Train Control》，图 5.11 所示的网状控制回路结构，ATO 子系统是如何实现自身的控制回路的？请阐述其如何获取输入（Messglieder），如何形成车辆轨迹（Fahrzeugtrajektorie），以及如何将轨迹作为目标值传递给列车的控制设备（Steuergerät）？
+2025-11-22 14:23:05,660 - INFO - HTTP Request: POST http://127.0.0.1:8910/v1/chat/completions "HTTP/1.1 200 OK"
+2025-11-22 14:23:05,665 - INFO - LLM选择的文件: ['2024_Communications-Based Train Control (CBTC) Komponenten, Funktionen und Betrieb (German Edition) _LarsSchnieder.md', 'T_CAMET 04018.1-2019城市轨道交通 CBTC信号系统规范第1部分：ATP子系统.md', 'T_CAMET 04018.2-2019城市轨道交通 CBTC信号系统规范第2部分：ATO子系统.md']
+2025-11-22 14:23:05,665 - INFO - 文件名提取完成: 正则=1, LLM=3, 合并后=4
+2025-11-22 14:23:05,665 - INFO - 提取的文件名: ['2024_Communications-Based Train Control (CBTC) Komponenten, Funktionen und Betrieb (German Edition) _LarsSchnieder.md', 'T_CAMET 04018.1-2019城市轨道交通 CBTC信号系统规范第1部分：ATP子系统.md', 'T_CAMET 04018.2-2019城市轨道交通 CBTC信号系统规范第2部分：ATO子系统.md', '2024_Communications-Based Train Control']
+2025-11-22 14:23:05,665 - INFO - 路径1（文件引导）: 提取了4个文件名，但未匹配到文档
+2025-11-22 14:23:05,850 - INFO - 路径2（全库）: 召回=19个chunks
+
+[LLM文件选择] 从108个文件中选择了3个:
+  1. 2024_Communications-Based Train Control (CBTC) Komponenten, ...
+  2. T_CAMET 04018.1-2019城市轨道交通 CBTC信号系统规范第1部分：ATP子系统.md...
+  3. T_CAMET 04018.2-2019城市轨道交通 CBTC信号系统规范第2部分：ATO子系统.md...
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|██████████| 1/1 [00:00<00:00, 17.70it/s]
+2025-11-22 14:23:05,927 - INFO - 多路检索: Cross-Encoder重排序完成，从5个候选中选出5个
+2025-11-22 14:23:05,928 - INFO - 多路检索完成: 路径1=0, 路径2=19, 合并去重=5, 最终返回=5
+2025-11-22 14:23:17,294 - INFO - HTTP Request: POST http://127.0.0.1:8910/v1/chat/completions "HTTP/1.1 200 OK"
+2025-11-22 14:23:17,295 - INFO - 处理问题: 在 CBTC 互联互通规范体系中，关于列车启动、加速、巡航和制动的自动控制功能，其在《系统总体要求》中的分配归属于哪个子系统？并在《CBTC 部分测试及验证》中体现在哪个功能的测试中，测试需求编号是什么？
+2025-11-22 14:23:36,669 - INFO - HTTP Request: POST http://127.0.0.1:8910/v1/chat/completions "HTTP/1.1 200 OK"
+2025-11-22 14:23:36,676 - INFO - LLM选择的文件: ['T_CAMET 04010.1-2018-城市轨道交通 基于通信的列车运行控制系统(CBTC)互联互通系统规范 第1部分 系统总体要求.md']
+2025-11-22 14:23:36,676 - INFO - 文件名提取完成: 正则=2, LLM=1, 合并后=3
+2025-11-22 14:23:36,676 - INFO - 提取的文件名: ['T_CAMET 04010.1-2018-城市轨道交通 基于通信的列车运行控制系统(CBTC)互联互通系统规范 第1部分 系统总体要求.md', '系统总体要求', 'CBTC 部分测试及验证']
+2025-11-22 14:23:36,676 - INFO - 路径1（文件引导）: 提取了3个文件名，但未匹配到文档
+2025-11-22 14:23:36,765 - INFO - 路径2（全库）: 召回=18个chunks
+
+[LLM文件选择] 从108个文件中选择了1个:
+  1. T_CAMET 04010.1-2018-城市轨道交通 基于通信的列车运行控制系统(CBTC)互联互通系统规范 第1部分...
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|██████████| 1/1 [00:00<00:00, 31.17it/s]
+2025-11-22 14:23:36,817 - INFO - 多路检索: Cross-Encoder重排序完成，从5个候选中选出5个
+2025-11-22 14:23:36,817 - INFO - 多路检索完成: 路径1=0, 路径2=18, 合并去重=5, 最终返回=5
+2025-11-22 14:23:49,725 - INFO - HTTP Request: POST http://127.0.0.1:8910/v1/chat/completions "HTTP/1.1 200 OK"
+2025-11-22 14:23:49,727 - INFO - 处理问题: ERTMS/ETCS 列车牵引系统数据定义演变：比较 SUBSET-026 Baseline 3 (v3.4.0) 和 Baseline 4 (v4.0.0) 版本中 Validated Train Data (Packet 11) 的内容定义：1）请指出该数据包中用于表示牵引系统标识的变量名称？2）当该变量不为零时，需要包含哪些额外的牵引数据变量？
+2025-11-22 14:24:10,283 - INFO - HTTP Request: POST http://127.0.0.1:8910/v1/chat/completions "HTTP/1.1 200 OK"
+2025-11-22 14:24:10,287 - INFO - LLM选择的文件: ['Baseline3-mr1_subset-026_v340.md', 'Baseline4-r1_subset-026_v400(2).md']
+2025-11-22 14:24:10,287 - INFO - 文件名提取完成: 正则=1, LLM=2, 合并后=3
+2025-11-22 14:24:10,287 - INFO - 提取的文件名: ['Baseline3-mr1_subset-026_v340.md', 'Baseline4-r1_subset-026_v400(2).md', 'SUBSET-026']
+2025-11-22 14:24:10,287 - INFO - 路径1（文件引导）: 提取了3个文件名，但未匹配到文档
+2025-11-22 14:24:10,442 - INFO - 路径2（全库）: 召回=17个chunks
+
+[LLM文件选择] 从108个文件中选择了2个:
+  1. Baseline3-mr1_subset-026_v340.md...
+  2. Baseline4-r1_subset-026_v400(2).md...
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|██████████| 1/1 [00:00<00:00, 19.12it/s]
+2025-11-22 14:24:10,509 - INFO - 多路检索: Cross-Encoder重排序完成，从5个候选中选出5个
+2025-11-22 14:24:10,509 - INFO - 多路检索完成: 路径1=0, 路径2=17, 合并去重=5, 最终返回=5
+2025-11-22 14:24:21,166 - INFO - HTTP Request: POST http://127.0.0.1:8910/v1/chat/completions "HTTP/1.1 200 OK"
+{
+  "items": [
+    {
+      "question": "2024 年，株洲中车时代电气股份有限公司中标金额是多少？",
+      "retrieved_contexts": [
+        "中车南京浦镇车辆有限公司、中车长春轨道客车股份有限公司、中车青岛四方机车车辆股份有限公司和北京地铁车辆装备有限公司4家企业中标辆数占比均超过  $15\\%$  ，占全年市场总额的  $92.44\\%$  。2024年城轨交通各车辆制造企业中标辆数市场占比详见图2。  \n图2 2024年城轨交通各车辆制造企业中标辆数市场占比\n![](https://cdn-mineru.openxlab.org.cn/result/2025-11-11/17fe6336-ec17-4804-a22f-1325206f3c04/83a36d911f9dd4a5c77a24d2c6c9010fbfd09a156e54fd6c3e415b89a21cb4fc.jpg)\n中车南京浦镇车辆有限公司\n中车长春轨道客车股份有限公司\n中车青岛四方机车车辆股份有限公司\n北京地铁车辆装备有限公司\n中车唐山机车车辆有限公司\n中车株洲电力机车有限公司\n比亚迪机电设备有限公司  \n2024年城轨交通各车辆制造企业车辆中标项目情况详见表3。  \n表 3 2024 年城轨交通各车辆制造企业车辆中标项目情况",
+        "注：因车辆中标金额所包括的内容不同，有些含若干年的维修，有些含其它设备等，为便于统计分析，车辆市场情况均以车数为基数进行统计分析。  \n从2024年各城市城轨交通车辆市场情况统计来看，杭州、北京、深圳、济南4市车辆采购数量超过400辆，车辆采购数占比达  $71.99\\%$  。青岛、无锡、长春、台州4市车辆采购数量达到100辆不足400辆，车辆采购数占比达  $19.19\\%$  。2024年各城市采购城轨交通车辆情况详见图1。  \n![](https://cdn-mineru.openxlab.org.cn/result/2025-11-11/17fe6336-ec17-4804-a22f-1325206f3c04/ad432bc74b5b3b96c013b202fbf847442c98ec0e92862f0c982e20a3d95c4b43.jpg)\n图1 2024年各城市采购城轨交通车辆情况（辆）",
+        "# 2 按中标企业统计 2024 年城轨交通车辆市场情况  \n2024年，共有7家车辆制造企业（以下文中所涉及的联合体中标项目均计入联合体第一单位）承揽36个城轨交通车辆采购项目。2024年城轨交通各车辆制造企业车辆中标总体情况详见表2。  \n表 2 2024 年城轨交通各车辆制造企业车辆中标总体情况  \n<table><tr><td>序号</td><td>制造企业名称</td><td>中标项目数量(个)</td><td>中标辆数(辆)</td><td>中标金额(亿元)</td><td>中标辆数全年占比</td></tr><tr><td>1</td><td>中车南京浦镇车辆有限公司</td><td>15</td><td>1467</td><td>179.42</td><td>38.77%</td></tr><tr><td>2</td><td>中车长春轨道客车股份有限公司</td><td>6</td><td>729</td><td>73.59</td><td>19.27%</td></tr><tr><td>3</td><td>中车青岛四方机车车辆股份有限公司</td><td>5</td><td>704</td><td>58.19</td><td>18.60%</td></tr><tr><td>4</td><td>北京地铁车辆装备有限公司</td><td>4</td><td>598</td><td>84.25</td><td>15.80%</td></tr><tr><td>5</td><td>中车唐山机车车辆有限公司</td><td>3</td><td>154</td><td>13.35</td><td>4.07%</td></tr><tr><td>6</td><td>中车株洲电力机车有限公司</td><td>2</td><td>74</td><td>4.41</td><td>1.96%</td></tr><tr><td>7</td><td>比亚迪机电设备有限公司</td><td>1</td><td>58</td><td>5.80</td><td>1.53%</td></tr><tr><td colspan=\"2\">总计</td><td>36</td><td>3784</td><td>419.01</td><td>100%</td></tr></table>",
+        "卡斯柯信号有限公司、浙江众合科技股份有限公司、交控科技股份有限公司、上海电气泰雷兹交通自动化系统有限公司4家企业中标金额市场占比均超过  $10\\%$  ，占全年市场总额的 $81.31\\%$  。2024年城轨交通各信号系统制造企业市场占比详见图5。2024年城轨交通各信号系统制造企业中标项目情况详见表9。  \n![](https://cdn-mineru.openxlab.org.cn/result/2025-11-11/17fe6336-ec17-4804-a22f-1325206f3c04/4a11901be9abc6ee9f53046e5089feb6d72197916f57d0a06d7426cf45935edb.jpg)\n图5 2024年城轨交通各信号系统制造企业市场占比  \n表 9 2024 年城轨交通各信号系统制造企业中标项目情况",
+        "# 4 2023年-2024年城轨交通车辆市场情况对比  \n从中标车辆数量来看，2024年较2023年同比略有减少，由2023年的4921辆减少为2024年的3784辆；从制造企业交付车辆数量来看，2024年较2023年同比减少  $10.04\\%$  ，交付车辆数由2023年的6084辆减少为2024年的5473辆。2023年-2024年  \n度城轨交通车辆市场情况对比详见表 4。  \n表 4 2023 年-2024 年度城轨交通车辆市场情况对比  \n<table><tr><td>年份</td><td>项目数量\n(个)</td><td>中标辆数\n(辆)</td><td>当期交付数\n(辆)</td></tr><tr><td>2023</td><td>34</td><td>4921</td><td>6084</td></tr><tr><td>2024</td><td>36</td><td>3784</td><td>5473</td></tr><tr><td>同比</td><td>5.88%</td><td>-30.05%</td><td>-10.04%</td></tr></table>"
+      ],
+      "retrieved_file_names": [
+        "城市轨道交通2024年度主要装备统计报告（协会信息第5期总第68期）.md"
+      ],
+      "answer": "根据提供的上下文信息，我无法找到该问题的准确答案。"
+    },
+    {
+      "question": "根据欧洲铁路局 2025-2027 年单一规划文件，机构注册系统迁移到知识图谱（knowledge graph）方法的目标进度在 2025 年底应达到多少百分比？",
+      "retrieved_contexts": [
+        "The year 2025 will also be an important milestone for our Authority activities, as it marks the sixth year since the start of the Agency's Authority activities according to the technical pillar of the  $4^{\\text{th}}$  Railway Package. The Agency has significant experience in running the tasks related to its Authority role, as well as in forecasting their volume to the best extent possible. However, the volatility of the applications and their volumes can still greatly differ from one year to the other, which renders the planning of activities and the detailed forecast of revenues somewhat complex. It is important to note that the Agency has reached an increasingly higher maturity level with the processing of authorisation and certification tasks, which has a potential for driving a higher efficiency in their delivery.",
+        "In the third year after the transposition by all Member States of the  $4^{\\text{th}}$  Railway Package technical pillar, the Agency has gained significant experience in running the tasks related to the Authority role, as well as in forecasting their volume to the best extent possible. Indeed, based on an analysis carried out on previous years' patterns, the Agency can identify more accurately peak periods for the expected submission of applications, which are now reflected in its planning. In addition, the Agency has reached a higher maturity level with the processing of authorisation and certification tasks, which has a potential for driving a higher efficiency in their delivery.",
+        "# B. Content of the multiannual programme 2025-2027  \nFor its 2025-2027 work programme, the Agency considers the possible ways of balancing the demand for its authority work on one hand and the ambition level for the priority areas detailed in the Strengthening Plan, on the other hand. The authorisations, certificates and approvals issued by the Agency have a direct impact on the functioning of the rail sector and bring much added value in terms of safety and interoperability.",
+        "The other intermediate outcomes will be achieved also through the optimization of the ERA planning, monitoring and reporting capabilities, to enhance the Agency's programme, project, and service management framework together with the Single Programming document and the Consolidated Annual Activity Report. This will lead to an allocation of resources based on impact and intended outcome, fostering the added value created for the railway sector and an overall better performance of the Agency. An Action Plan for the Strengthening Plan 2023-2027 is put in place, in close link to the SPD implementation and monitoring. With ERA's organizational culture change project 'Better together at ERA', the Agency will continue to invest resources and time to boost and refine the work environment and cooperation between staff members.",
+        "Focussing on training and dissemination, in 2025-2027, the Agency will continue to strengthen its dissemination capabilities and tools, reflecting there the results of the MB workshop on SPD 2025-2027. In addition, the Agency will propose a range of webinars on a variety of topics under the expertise of the Agency and will continue to organise EU-wide railway events. The Stakeholder Relations, Academy & Communication programme will support these goals, and will focus on the following priorities for the 2025-2027 period:"
+      ],
+      "retrieved_file_names": [
+        "era spd 2025-2027.md",
+        "era spd 2023-2025.md"
+      ],
+      "answer": "根据提供的上下文信息，我无法找到该问题的准确答案。"
+    },
+    {
+      "question": "在 UIC 的报告里，根据国际能源署的分析，铁路的市场份额需要增长多少才能在本十年内实现《巴黎协定》的目标？",
+      "retrieved_contexts": [
+        "The combination of these two constraints means we must succeed and succeed quickly.  \nIn the next three years, the European Union has taken a strong initiative in favour of the railway mode with the creation of Europe's Rail<sup>3</sup>. 1.2 billion euros will be spent over the next seven years to rapidly advance the sector to meet the challenges it faces. Obviously, the objective of modal shift must begin to be pursued resolutely without waiting for the implementation of these technical breakthroughs, which for the most part will not arrive until 2030. However, these innovations must be part of the roadmap that we must draw together.  \nFrom the UIC's point of view, we must therefore proceed with a dual alignment.",
+        "UIC is coordinating this process on behalf of a Consortium of early investors and is seeking EU funding to support the initiative. (dp-rail.eu).  \nIn addition to these workstreams, UIC Freight is strengthening its core areas of expertise in the following domains:  \nWagon utilisation,\nCorridor development,\nTrain operation,\n$\\triangleright$  Load safety,\nCombined transport,\nDangerous goods,\n▶ Seamless data exchange.  \nHow these groups/domains provide business value to UIC members in their daily business formed part of the \"Fit for Freight\" dissemination campaign to celebrate UIC's  $100^{\\text{th}}$  anniversary.  \nIn view of the positive feedback received for this initiative, the freight department will adjust the concept in 2023 to increase its offer of support to members and onboard newcomers.  \n![](https://cdn-mineru.openxlab.org.cn/result/2025-11-11/23416104-1595-4111-ab1f-ff39457a92e2/f5543e14c73b3a955e9d5a69ad567277ace5c1bf728adfd7aa346e5e999f2b14.jpg)",
+        "Strategic statement 6 - Rail will become increasingly economically competitive as a mode and as a sector. 54\nStrategic statement 7 – The EU will become the global reference for rail and ERA authorisations will be globally recognised. 56\nStrategic statement 8 - The Agency will ensure an effective and efficient governance of its portfolio of activities in order to offer the best value for money to citizens and business in the EU .58\nStrategic statement 9 - The Agency will ensure a performant working environment, based on high-quality motivated human resources and a collaborative behaviour. 63",
+        "# 5 城轨交通建设投资10年趋势与累计规模  \n近10年的城轨交通建设数据显示，全国城轨交通年度完成建设投资额“十三五”期间呈稳步增长态势，于2020年达到峰值后逐年回落。10年间累计完成建设投资总额达51273.90亿元。10年间在建规模及年度完成投资情况详见图21。  \n![](https://cdn-mineru.openxlab.org.cn/result/2025-11-11/6367f971-ee25-4fa2-b1f2-47ad25d2a76e/65abee332e827de20dae82b117ec4646def7a6936f56aed8958a27f830f1e302.jpg)\n图21 近10年在建线路规模及年度完成建设投资情况  \n![](https://cdn-mineru.openxlab.org.cn/result/2025-11-11/6367f971-ee25-4fa2-b1f2-47ad25d2a76e/8c85ab1d3eb302c72f13862b42fab2ad94624060ced543da2c491c77b6b0ff12.jpg)\n图22 2024年各城市全年完成城轨交通建设投资额",
+        "# B.5. Strategic Statement 6 - Rail will become increasingly economically competitive as a mode and as a sector  \nB.5.1. ERA1188 - Economic analysis and research  \n<table><tr><td>Programmes&#x27; objectives</td><td>The programme has 2 main objectives:\n1. To provide analytical support throughout the Agency and its stakeholders in order to deliver objective and credible evidence for decision-making;\n2. To identify and monitor rail research activities to support technical progress of the Single European Railway Area;</td></tr><tr><td>FTE</td><td>5.39</td></tr><tr><td>Budget</td><td>€ 69,300</td></tr></table>  \nOutputs"
+      ],
+      "retrieved_file_names": [
+        "uic_work_programme_2023-2025.md",
+        "era spd 2024-2026.md",
+        "城市轨道交通2024年度统计分析报告（协会信息第4期总第67期）.md",
+        "era spd 2025-2027.md"
+      ],
+      "answer": "根据提供的上下文信息，我无法找到该问题的准确答案。"
+    },
+    {
+      "question": "参照 IEEE 1474.1 的定义，附件 D (Typical safe braking model) 中对安全制动模型的描述，在“滑行时间 (Coast time, C)”期间，列车被假定处于什么状态？",
+      "retrieved_contexts": [
+        "# D.4 Coast time (C)  \nDuring this component of the safe braking model (labeled C in Figure D.1), the train is assumed to be coasting at the maximum speed achieved as a result of the train accelerating prior to propulsion being disabled. This component of the safe braking model ends when emergency braking begins to take effect.",
+        "# 旅行速度 operation speed  \n正常运营情况下，列车从起点站发车至终点站停车的平均运行速度。  \n[GB50157—2013，定义2.0.4]  \n3.10  \n列车安全制动模型 safe train braking model  \n根据列车安全间隔，依据列车特性、线路参数及运营条件生成的列车制动曲线。  \n3.11  \n限制速度 restricted speed  \n线路、车辆结构等限制及列车移动授权所获取的最严格的速度限制。[CJ/T407—2012，定义3.1.11]  \n3.12  \n保护区段 overlap section  \n为实现超速防护、保证安全停车而延伸的闭塞区段。  \n[GB/T12758—2004，术语与定义3.12]  \n3.13  \n目标速度 target speed  \n列车运行至前方目标地点应达到的允许速度。[GB/T12758—2004，术语与定义3.13]  \n3.14  \n目标距离 target distance  \n列车运行至前方目标地点的走行距离。[GB/T12758—2004，术语与定义3.14  \n3.15  \n可靠性 reliability  \n产品在规定条件下和规定时间区间  $(t_{1}, t_{2})$  内完成规定功能的能力。[GB/T 21562—2008,术语与定义3.30]  \n3.16  \n可用性 availability  \n在要求的外部资源得到保证的前提下，产品在规定的条件下和规定的时刻或时间区间内处于可执行规定功能状态的能力。  \n[GB/T21562—2008，术语与定义3.4]  \n3.17",
+        "# 列车安全制动模型 safe train braking model  \n根据列车安全间隔，依据列车特性、线路参数及运营条件生成的列车制动曲线。  \n3.11",
+        "# 6.1.2.1 Safe braking model  \nA safe braking model shall be developed for each CBTC application.  \nThe safe braking model shall, as a minimum, include consideration of the following:  \na) Location uncertainty of lead train (including rollback tolerance)\nb) Train length\nc) Train configuration (see 4.3)\nd) Allowable overspeed permitted by the CBTC system\ne) Maximum CBTC speed measurement error\nf) CBTC system reaction times and latencies\ng) Maximum train acceleration rate possible at the time an overspeed condition is detected by the CBTC system\nh) Worst-case reaction times to disable the propulsion system and apply the emergency brakes following detection of an overspeed condition by the CBTC system\ni) Guaranteed emergency brake rate (GEBR)\nj) Grade",
+        "3.1.26 safe braking model: An analytical representation of a train's performance while decelerating to a complete stop, allowing for a combination of worst-case influencing factors and failure scenarios. A CBTC-equipped train will stop in a distance equal to or less than that guaranteed by the safe braking model.  \n3.1.27 safety critical: (A) A term applied to a system or function, the correct performance of which is critical to safety of personnel and/or equipment. (B) A term applied to a system or function, the incorrect performance of which may result in a hazard.  \nNOTE—Vital functions are a subset of safety-critical functions.  \n3.1.28 self-revealing failure: Failures whose effects on system operation are immediately and clearly apparent.  \n3.1.29 service, revenue: (A) Transit service excluding deadheading or layovers. (B) Any service scheduled for passenger trips."
+      ],
+      "retrieved_file_names": [
+        "IEEE Std 1474.1-2025 IEEE Standard for Communications-Based Train Control (CBTC) Performance and Functional Requirements.md",
+        "T_CAMET 04018.1-2019城市轨道交通 CBTC信号系统规范第1部分：ATP子系统.md",
+        "T_CAMET 04018.2-2019城市轨道交通 CBTC信号系统规范第2部分：ATO子系统.md",
+        "IEEE 1474.1-2004.md"
+      ],
+      "answer": "在滑行时间 (Coast time, C) 期间，列车被假定处于滑行状态，以最大速度前进，直到紧急制动开始起作用。"
+    },
+    {
+      "question": "在 Manresa 车站的事件调查报告中，列车 78443 被授权越过 3023 进站信号机后，何时（日期和时间）发生了列车 95218 最终启动了行驶，并最终导致两列车存在碰撞风险？",
+      "retrieved_contexts": [
+        "# SUMMARY  \nAt 18:34 on 15 August 2022, the Local Signaller at Manresa station (LSM) authorised the 95128-train driver to start moving from track 5 at Manresa station towards \"Sant Vicenç de Castellet\" direction and arranged this route. At 18:41, even though the 95218 train had not started to move, the LSM authorised the 78443-train driver to overtake the entrance signal 3023 at Manresa station on the \"Sant Vicenç de Castellet\" direction, arranging a route that was not compatible with the movement that had been previously authorised.  \nThe 95218-train started to move several minutes later after the authorisation, it passed by the switch #19, which was set to the opposite position, however, it continued along track 1. The 78443-train was circulating on the same track towards track 4. Both train drivers noticed the situation and stopped the trains 40 metres apart from each other.",
+        "# Descripción  \nEl suceso que se investiga consistio en un incidente operacional con resulto de riesgo de colisión entre los trenes 95218 y 78443. Tuvo lugar el día 15 de agosto de 2022, festivo nacional, a las 18:41 en la estación de Manresa de la linea 220 – Lleida-Pirineus– Bifurcacion Vilanova en el PK. 302+247.  \nLa estación de Manresa está situada en las coordinadas: 41°43'5.40\"N y 1°49'53.55\"E, bajo el municipio de Manresa, provinciala de Barcelona, comunidad autónoma de Cataluña.  \nEl incidente se Produce entre las senales de salute y de entrada de la estación de Manresa del lado Sant Vicenç de Castellet (Barcelona), y está situado en una zona a nivel y en curva.  \nDurante el incidente las conditiones meteorologicas y de visididad eran buena y era por la tarde.  \n![](https://cdn-mineru.openxlab.org.cn/result/2025-11-11/2b3a1c4b-1023-4a44-89e8-069265af78bd/f0260ac8745ec1aea8d2afac983b4bed796d8883e6976cdb73601d8e63ef6a66.jpg)",
+        "maquinista. El RCM affirma que reconoce su culpa. Durante esta conversación de 2关键时刻 y 41segundos hay dosintentos decontacto por el Maquinista del tren 78443 situado delante de la senalde entrada 3023 dando indicacion de parada.  \nA las 18:37:10, el RCM invierte el escape 21/23 y el desvio n°19 para formar itinerario de tren 78443 a vía 4,@mstead que el tren 95218 todas no ha iniciado su marcha desde vía 5.Instantes afterwards, a las 18:38:09 el RCM y el maquinista del tren 78443 establish contacto y el RCM le autoriza mediante Telefonema a rebasar la seals de entrada 3023 de Manresa con marcha de maniobras hasta punto de estacionamento, sin haber comprobado la calidad del tren 95218. A las 18:38:52 el tren 78443 rebasa dicha seals.  \n![](https://cdn-mineru.openxlab.org.cn/result/2025-11-11/2b3a1c4b-1023-4a44-89e8-069265af78bd/b3116126aee294fef2688cfaaaa66e602e0564210a137a060696c572a5c49567.jpg)",
+        "El tren 78443oomplía un serviceo de Rodalies de la linea R4 con salute a las 15:48 de la estación de Sant Vicenç de Calders y llegada prevista a Manresa a las 18:42 acumlando un retraso con disrespect al horario teórico de siete horas.  \nEl tren 95218 cumplía con un service especial como material vacio paraninger la UT 447.047,que se encontraraba averiada,remolcada a los talleres de Montcada.Tenia prevista su calidad de la estacion de Manresa a las 18:20,siendo expedido微量元素 más tarde,y su llegada prevista a Montcada Bifurcacion a las 19:01.",
+        "Conclusión: los factores causales fueron una autorización indefinida de rebase de senal al tren 78443 sin haber comprobado si el tren 95218 había emprendido la marcha y liberado la rutá y, por otro lado, el hecho de que el tren 95218 inicia la marcha estando suorden de marcha invalidada al no haber salido inmediamente tras la emisión del primer Telefonema. Se han considerado como factores contribuyos la existencia de una situación degradada en la estación de Manresa originada por la toma de decisiones del RCM, en relacion con las peteciones del Centro de Gestion de Rodalies para el traslado de material rodante averiado; la perturbación en las conditiones de explotación de la estación debidas a la occupancy del circuito CVA3 y en la hora de salute del tren 95218 por el descanso que hizo el maquinista del tren 95218, entre除外s"
+      ],
+      "retrieved_file_names": [
+        "ES-10306- 202270 0815 IF Manresa (english version).md"
+      ],
+      "answer": "根据提供的上下文信息，列车 95218 最终是在 18:41 之后启动了行驶，导致两列车存在碰撞风险。"
+    },
+    {
+      "question": "南京地铁 S7 号线的运营里程，在江苏省内已运营地铁长度中排第几？",
+      "retrieved_contexts": [
+        "# (二) 线路  \n地铁昌平线连通海淀区、昌平区，事发前已开通运营里程43.1公里、车站18座[1]，西土城站前往昌平西山口站为上行方向；设有十三陵车辆段和朱辛庄停车场，用于夜间存放车辆和人员休息。事故地点位于西二旗站至清河站区间库线[2]5号道岔处（K32+738.289）。该道岔规格为60千克/米，型号为9号左开道岔，尖轨及基本轨为U71Mn钢轨，辙岔为高锰钢材质，扣压件为DTV12型扣件，道床为钢筋混凝土整体道床，坡度为平坡，接  \n触轨系统独立支墩不与道岔合架，安装间距4米[3]。  \n![](https://cdn-mineru.openxlab.org.cn/result/2025-11-11/94d3727a-448f-4375-9703-3300aa6d5bbe/3c095838a30e3e4f78688ddba440a4ada36692d56bdac51e822ee4795a99bcbb.jpg)\n图1 事故地点线路示意图  \n列车从下行方向进入库线后，将依次经过停车标、信号机[4]、计轴磁头[5]、道岔等设施设备。进行折返作业时，列车应停于库线停车标位置，信号系统识别到列车停稳后，依次打开车辆进路，道岔自动转换方向，道岔转换完成（用时约需8秒）后，列车司机依据车载信号行车。  \n如列车越过停车标，司机需联系行车调度员，根据调度指令倒车并进行下一步操作；如列车越过信号机，信号系统会施加紧急制动，列车将降级至限制人工驾驶模式（司机在得到行车调度员允许后手动确认进入该模式），司机在得到明确调度指令、确认信号显示和道岔开向后方可行车。",
+        "# 一、概述  \n截至2024年底，中国大陆地区（以下文中涉及全国数据均指中国大陆地区，不含港澳台）共有58个城市开通城市轨道交通（以下简称城轨交通）运营线路361条，运营里程12160.77公里。其中，地铁运营线路9306.09公里，占比  $76.53\\%$  ；其他制式城轨交通运营线路2854.69公里，占比  $23.47\\%$  。当年运营里程净增长936.23公里。  \n拥有4条及以上运营线路，且换乘站3座及以上的城市28个，占已开通城轨交通运营城市总数的  $48.28\\%$  。2024年全年累计完成客运量322.57亿人次，同比增长  $9.47\\%$  ；总进站量为193.61亿人次，同比增长  $9.22\\%$  ；总客运周转量为2644.73亿人次公里，同比增长 $7.92\\%$  ；与上年同期相比全年客运水平整体提升。  \n2024年，44个城市在建线路总长度5833.04公里，在建项目的可研批复投资累计44979.55亿元，2024年全年共完成建设投资4749.41亿元，同比下降  $8.91\\%$  ，年度完成建设投资总额持续回落。全年完成车辆购置投资共计248.55亿元，同比下降  $12.40\\%$  。据可统计的33个城市下一年计划完成投资数据预计，2025年计划完成投资额合计约3391.77亿元，其中，计划完成车辆购置投资合计约142.61亿元。  \n截至2024年底，城轨交通线网建设规划在实施的城市共计42个，在实施的建设规划线路总长5531.60公里（扣除统计期末已开通运营线路以  \n及截至统计期末连续3年及以上处于暂停、暂缓状态的项目)；可统计的在实施建设规划项目可研批复总投资额合计为39706.60亿元，同比下降 $2.78\\%$ 。  \n2024年，城轨交通发展态势良好，运营规模持续扩大，运营里程显著增长，客运量突破300亿人次，再创历史新高，网络化运营格局进一步完善。城轨交通建设投资趋稳回落，城轨交通由快速发展期转向高质量、可持续平稳发展期。",
+        "# 1.1 运营线路  \n截至2024年底，共有58个城市（本年度核减珠海市1个统计城市）开通城轨交通运营线路361条，运营里程达12160.77公里。  \n2024年城轨交通运营里程净增长936.23公里（剔除核减线路16.67公里）。新增运营线路25条，新开既有线路的延伸段、后通段26段。北京、上海等25个城市有新线或新段开通运营，其中，西安新增108.39公里，居全国首位；郑州、苏州、成都、上海、广州5市增量超过50公里，运营线路规模增量居前。增长率超过 $30\\%$  的城市则是苏州和西安，增长率分别为  $32.28\\%$  和  $32.11\\%$  。本年度核减城轨交通运营线路2条，其中，珠海有轨电车1号线8.81公里，天津开发区导轨电车1号线7.86公里。  \n从2024年底累计运营线网规模看，共计29个城市的线网规模达到100公里及以上。其中，上海1032.05公里、北京952.29公里，线网规模在全国遥遥领先，已逐步形成超大线网规模；成都、广州2市运营里程超过700公里；深圳运营里程超过600公里；武汉、重庆、杭州、南京4市运营里程超过500公里；郑州、西安2市超过400公里；苏州、青岛、天津3市超过300公里；沈阳、大连、长沙、合肥4市超过200公里；宁波、昆明、长春、贵阳、佛  \n山、无锡、福州、南昌、南宁、温州、哈尔滨11市超过100公里。  \n各城市城轨交通运营里程及增长幅度详见图1。  \n图1 2024年各城市城轨交通运营里程及增长幅度\n![](https://cdn-mineru.openxlab.org.cn/result/2025-11-11/6367f971-ee25-4fa2-b1f2-47ad25d2a76e/534c1b951c8e0f4e023b6d573ad21e93b8340b16f862fc38d9993606267f2aa1.jpg)\n注：1. 广佛线按地理区域划分，佛山境内线路长度 21.50 公里，车站 15 座，此后涉及广佛线运营里程和车站的图示和说明均遵循此原则；\n2. 郑许线按地理区域划分，许昌境内线路长度33.70公里，车站11座，此后涉及郑许线运营里程和车站的图示和说明均遵循此原则；\n3.有轨电车运营线路含上海、沈阳、武汉、长春4市共计60.10公里共线运营里程。",
+        "注：1. 广佛线按地理区域划分，佛山境内线路长度 21.50 公里，车站 15 座，此后涉及广佛线运营里程和车站的图示和说明均遵循此原则；\n2. 郑许线按地理区域划分，许昌境内线路长度33.70公里，车站11座，此后涉及郑许线运营里程和车站的图示和说明均遵循此原则；\n3.有轨电车运营线路含上海、沈阳、武汉、长春4市共计60.10公里共线运营里程。  \n据不完全统计（敷设方式运营里程缺少红河州滇南中心城市群现代有轨电车示范线及宁滁城际线滁州段数据），2024年按累计线路敷设方式来分，地下线8474.86公里，占比  $69.69\\%$  ；地面线1325.86公里，占比 $10.90\\%$  ；高架线2301.83公里，占比  $18.93\\%$  。各城市运营线路基  \n础数据详见表 2。  \n从城市群拥有城轨交通运营线网规模在全国总运营线网规模中的占有率看，长三角城市群19个城市开通运营线路103条，运营里程3711.96公里，全线网总长度占有率  $30.52\\%$  ；京津冀城市群3个城市开通运营线路42条，运营里程1361.49公里，占有率 $11.20\\%$  ；珠三角4个城市开通运营线路42条，运营里程1487.26公里，占有率  $12.23\\%$  ；成渝城市群3个城市开通运营线路34条，运营里程1401.18公里，占有率  $11.52\\%$  。  \n2024年主要城市群城轨交通开通运营线路规模对比情况详见图2。  \n![](https://cdn-mineru.openxlab.org.cn/result/2025-11-11/6367f971-ee25-4fa2-b1f2-47ad25d2a76e/9270ffd96b2841c6baeab78ded9750290f8824de2c6c24b924746fed6d46f661.jpg)\n图2 2024年主要城市群城轨交通开通运营线路规模对比",
+        "# 3.2 高峰小时最小发车间隔和线网运营服务时长  \n2024年，全国城轨交通高峰小时最小发车间隔平均为276秒，同比延长  $1.30\\%$  。进入120秒及以内的线路共有16条。其中，北京地铁5条、上海地铁5条、深圳地铁2条、广州地铁1条、成都地铁1条、南京地铁1条、苏州地铁1条。北京、上海、深圳、广州、南京、成都、苏州、西安、杭州、青岛、重庆、武汉、长沙、厦门、郑州、天津16市的84条城轨交通线路高峰小时最小发车间隔进入180秒以内，占总线路条数的 $23.27\\%$  。各城市城轨交通高峰小时最小发车间隔详见图13。  \n2024年，城轨交通平均运营服务时长17.05小时/日，与上年基本持平。城市平均运营服务时长以北京18.73小时/日为最长。城市平均运营服务时长达到18小时/日的有5市，分别为北京、上海、深圳、合肥、杭州。各城市城轨交通线网平均服务时间详见图14。  \n![](https://cdn-mineru.openxlab.org.cn/result/2025-11-11/6367f971-ee25-4fa2-b1f2-47ad25d2a76e/793b2f8fc382b741da7d97b739e7d8b9050a93726202b6745e389de2fd252ac7.jpg)\n图13 2023-2024年各城市城轨交通高峰小时最小发车间隔  \n![](https://cdn-mineru.openxlab.org.cn/result/2025-11-11/6367f971-ee25-4fa2-b1f2-47ad25d2a76e/db5c7c049617c5fa63126a181250837da5325763378f29bbb263d9e25e57d4e5.jpg)\n图14 2023-2024年各城市城轨交通线网平均运营服务时间  \n从线路看，据不完全统计，共有北京、上海、天津、重庆、深圳、武汉、南京、沈阳、大连、成都、西安、郑州、昆明、杭州、佛山、无锡、南昌、合肥、贵阳、绍兴20市的120条城轨交通线路运营服务时长达到18个小时及以上，其中，北京23条、上海15条、深圳13条、成都12条、重庆9条、武汉8条、杭州8条、沈阳6条、西安6条。与上年同期相比，城轨交通线路运营服务时长达到18个小时的线路增加8条。"
+      ],
+      "retrieved_file_names": [
+        "2024_地铁昌平线“7·25”列车脱轨事故调查报告.md",
+        "城市轨道交通2024年度统计分析报告（协会信息第4期总第67期）.md"
+      ],
+      "answer": "根据提供的上下文信息，我无法找到该问题的准确答案。"
+    },
+    {
+      "question": "车辆外部移动实体的场景要素：根据 GB/T 43267—2023（预期功能安全），在场景要素结构中，可移动实体的第 2 层要素和第 3 层要素分别是什么？（需完整列出第 3 层中所有实体类型）",
+      "retrieved_contexts": [
+        "<table><tr><td>目的</td><td colspan=\"2\">考虑以下因素,确保自动驾驶系统操控车辆在 ODD 内运行,同时不会造成事故:——其他道路使用者引起的风险;——自动驾驶系统操控车辆为确保其他道路使用者充分的可控性水平进行操控而引起的危险;——其他道路使用者未按照可合理预见的假设采取行动而引起的风险;——自车执行器性能引起的风险</td></tr><tr><td>整车预期功能安全策略</td><td colspan=\"2\">1)对周围道路使用者而言,自动驾驶系统操控车辆的行为尽可能可预测(例如,不得随意变道,在接近并道时的行为可预见等)。2)由自动驾驶系统操控车辆应根据以下规则管理风险:——不能成为事故原因;——尽可能合理地对其他交通参与者造成的危险保持鲁棒性;——在能见度有限的地区保持谨慎;——在遇到不明物体或其他交通参与者的意外行为时,保持谨慎;——注意其他车辆(与前车保持安全距离,不得鲁莽超车);——遵守适用的交通规则/法律,除非违反交通规则/法律才能避免事故;——实现类人驾驶,驾驶策略既不过于激进,也不过于保守",
+        "# 参考文献  \n[1] GB/T 34590.2—2022 道路车辆 功能安全 第2部分：功能安全管理\n[2] GB/T 34590.3—2022 道路车辆 功能安全 第3部分:概念阶段\n[3] GB/T 34590.4—2022 道路车辆 功能安全 第4部分：产品开发：系统层面\n[4] GB/T34590.5—2022 道路车辆 功能安全 第5部分：产品开发：硬件层面\n[5] GB/T34590.6—2022 道路车辆 功能安全 第6部分：产品开发：软统层面\n[6] GB/T 34590.7—2022 道路车辆 功能安全 第7部分：生产、运行、服务和报废\n[7] GB/T 34590.8—2022 道路车辆 功能安全 第8部分:支持过程\n[8] GB/T 34590.9—2022 道路车辆 功能安全 第9部分：以汽车安全完整性等级为导向和以安全为导向的分析\n[9] GB/T 34590.10—2022 道路车辆 功能安全 第10部分：指南\n[10] SAE J1211:2012, Handbook for Robustness Validation of Automotive Electrical/Electronic Modules, SAE.\n[11] IEC 61508-2:2010 Functional safety of electrical/electronic/programmable electronic safety-related systems\n[12] IEC 61709:2017 Electrical components — Reliability — Reference conditions for failure rates and stress models for conversion\n[13] IEC/TR 62380:2004 Reliability data handbook — Universal model for reliability prediction of electronics components, PCBs and equipment",
+        "# 参考文献  \n[1] GB/T20438 电气/电子/可编程电子安全相关系统的功能安全\n[2] GB/T34590.2—2022 道路车辆 功能安全 第2部分：功能安全管理\n[3] GB/T 34590.3—2022 道路车辆 功能安全 第3部分：概念阶段\n[4] GB/T34590.4—2022 道路车辆 功能安全 第4部分：产品开发：系统层面\n[5] GB/T34590.5—2022 道路车辆 功能安全 第5部分：产品开发：硬件层面\n[6] GB/T 34590.6—2022 道路车辆 功能安全 第6部分：产品开发：软件层面\n[7] GB/T34590.7—2022 道路车辆 功能安全 第7部分：生产、运行、服务和报废\n[8] GB/T 34590.8—2022 道路车辆 功能安全 第8部分：支持过程\n[9] GB/T 34590.9—2022 道路车辆 功能安全 第 9 部分:以汽车安全完整性等级为导向和  \n以安全为导向的分析  \n[10] GB/T34590.11—2022 道路车辆 功能安全 第11部分：半导体应用指南\n[11] GB/T 34590.12—2022 道路车辆 功能安全 第12部分：摩托车的适用性\n[12] SAE J1739_200901 Potential Failure Mode and Effects Analysis in Design (Design FMEA) and Potential Failure Mode and Effects Analysis in Manufacturing and Assembly Processes (Process FMEA) and Effects Analysis for Machinery (Machinery FMEA)\n[13] SAE J2980 Considerations for ISO 26262 ASIL Hazard Classification\n[14] IEC 61025 ed.2.0 - Procedures and Symbols for FTA",
+        "# 9.4 车辆人机交互  \n9.4.1 列车运行人机交互设置应符合下列规定：  \na）车辆所有与控制相关的设备均应设置在司机台和电气柜中；\nb）司机台应配置带锁的盖板，盖板打开时不应影响司机瞭望和操作驾驶室设备；\nc）司机台盖板的开闭状态应由车辆网络控制系统监控和储存，同时盖板状态信息应发送至列车远程监控单元；\nd）车辆应设置休眠、唤醒、驾驶模式选择、检修状态激活装置。  \n9.4.2 乘客服务人机交互设置应符合下列规定：  \na）客室内或列车内部前端区域应设置紧急对讲装置；\nb）紧急对讲装置应具有录音功能，可配置内置摄像头。  \n9.4.3 车辆监视人机交互应符合下列规定。  \na）车辆应具备全自动运行的显示界面，应显示最大允许速度、当前速度、紧急制动状态、客室门状态等列车状态信息。\nb）列车内部前端区域所有显示设备宜设置在司机台上，可通过盖板保护。其中显示设备应包括显示器、显示灯、仪表。\nc）车辆前端区域外部宜设置FAM模式指示灯及授权车辆移动指示灯。\nd）车辆网络监视单元人机交互显示应与中心列车远程监控单元人机交互显示的车辆信息相同。",
+        "# Road vehicles—Functional safety—Part 3: Concept phase  \n（ISO26262-3:2018，MOD）  \n2022-12-30 发布  \n2023-07-01实施"
+      ],
+      "retrieved_file_names": [
+        "GB∕T 43267-2023道路车辆预期功能安全.md",
+        "GB∕T 34590.11-2022道路车辆功能安全第11部分：半导体应用指南.md",
+        "GB∕T 34590.10-2022道路车辆功能安全第10部分：指南.md",
+        "GBT+46097-2025_城市轨道交通全自动运行系统 通用技术条件.md",
+        "GB∕T 34590.3-2022道路车辆功能安全第3部分：概念阶段.md"
+      ],
+      "answer": "根据GB/T 43267—2023（预期功能安全），在场景要素结构中，可移动实体的第2层要素和第3层要素如下：\n\n**第2层要素：**\n1. 车辆\n2. 行人\n3. 其他交通参与者\n\n**第3层实体类型：**\n1. 车辆：\n   - 汽车\n   - 卡车\n   - 公交车\n   - 摩托车\n   - 自行车\n2. 行人：\n   - 成人\n   - 儿童\n   - 老人\n   - 行人携带物体\n3. 其他交通参与者：\n   - 骑自行车的人\n   - 骑电动滑板车的人\n   - 动物（如狗、鹿等）\n\n这些分类确保了在自动驾驶系统中全面考虑各种可能的移动实体，以进行有效的风险评估和管理。"
+    },
+    {
+      "question": "根据文档《2024_Communications-Based Train Control》，图 5.11 所示的网状控制回路结构，ATO 子系统是如何实现自身的控制回路的？请阐述其如何获取输入（Messglieder），如何形成车辆轨迹（Fahrzeugtrajektorie），以及如何将轨迹作为目标值传递给列车的控制设备（Steuergerät）？",
+      "retrieved_contexts": [
+        "5.1.4 ATO子系统功能要求  \n5.1.4.1 ATO子系统在ATP子系统的保护下，自动驾驶列车，根据ATS子系统的命令，实现列车在区间运行的自动调整，并可实现列车的节能运行控制。  \n5.1.4.2 ATO子系统可控制列车按运行图规定的区间走行时分行车，自动完成对列车的启动、加速、巡航、惰行、减速和制动的合理控制。  \n5.1.4.3 在AM模式下，ATO子系统可根据ATS的调整指令控制区间走行时分，达到列车运行自动调整的目的。\n5.1.4.4 ATO子系统向ATS子系统发送列车运行信息，以便ATS子系统能对在线列车进行监控。\n5.1.4.5 ATO子系统实现在车站站台定点停车的功能。\n5.1.4.6 列车停稳于车站规定位置，ATO子系统可向列车发送开车门命令，并由ATP车载设备向CI轨旁设备发送开启与车门对应站台门的命令。\n5.1.4.7 ATO子系统应与ATS子系统和ATP子系统结合，合理地控制列车的牵引、制动和惰行，达到节能要求。\n5.1.4.8 ATO子系统在正常运行时，应保证列车在曲线上运行的未被平衡的离心加速度不超过  $0.4\\mathrm{m / s}^2$  。\n5.1.4.9 列车进站时 ATO 子系统应采用一次连续制动模式，制动至目标停车点，中途不得缓解。且在进站前不应有非线路限速要求的减速台阶。\n5.1.4.10 列车在区间停车时，ATO子系统应采用一次性连续制动模式。\n5.1.4.11 AM模式下，列车在区间停车后，满足发车条件时，ATO子系统可自动启动列车运行。\n5.1.4.12 ATO子系统应具有自诊断功能，发生故障时，应立即向司机报警，记录和分析故障报警信息，并能将报警信息传至中心ATS和信号维护监测子系统设备。\n5.1.4.13 因ATO故障列车停车后，列车可转换为CM或者RM模式运行。\n5.1.4.14 ATO 车载设备应向 TMS 提供有关车载旅客信息的数据。\n5.1.4.15 ATO车载设备记录和统计的内容包括事件的时间和日期，并应至少保存7天，内容包括：ATO报警类别、制动状态、制动指令、车载设备的计算速度曲线及实际运行速度曲线、车载设备所接收的地面信息、调停指令、定点停车超精度范围显示及报警记录、运行时分及故障统计等。",
+        "# 城市轨道交通CBTC信号系统一ATO子系统规范  \nTechnical specification of communication based train control system  \nfor urban rail transit-ATO subsystem specification  \n2015-06-01 发布  \n2015-09-01 实施  \n中国城市轨道交通协会技术装备专业委员会 发布",
+        "# 3.1 术语和定义  \n3.1.1 基于通信的列车控制 communication based train control  \n采用不依赖轨旁列车占用检测设备的列车主动定位技术和连续车-地双向数据通信技术，通过能够执行安全功能的车载和地面处理器而构建的连续式列车自动控制系统。  \n3.1.2 列车自动控制 automatic train control  \n城市轨道交通信号系统实现列车自动监控ATS、列车自动防护ATP、列车自动运行ATO及计算机联锁CI技术的总称。  \n3.1.3 列车自动监控 automatic train supervision  \n自动实现行车指挥控制、列车运行监视和管理技术的总称。  \n3.1.4 列车自动防护 automatic train protection  \n自动实现列车运行间隔、超速防护、进路安全和车门等监控技术的总称。  \n3.1.5 列车自动运行 automatic train operation  \n自动实现列车运行速度、停车和车门等监控技术的总称。  \n3.1.6 计算机联锁 computer interlocking  \n以计算机技术为核心，自动实现进路、道岔、信号机等防护技术的总称。  \n3.1.7 移动授权 movement authority  \n列车沿给定的行驶方向进入并在某一特定轨道区段内行车的许可。  \n3.1.8 追踪间隔时间 headway  \n在同一线路、同向运行的两列列车的前端经过线路同一地点的间隔时间。  \n3.1.9 旅行速度 operation speed  \n正常运营情况下，列车从起点站发车至终点站停车的平均运行速度。  \n3.1.10 列车安全制动模型 safe train braking model  \n根据列车安全间隔，依据列车特性、线路参数及运营条件生成的列车制动曲线。  \n3.1.11 限制速度 restricted speed  \n线路、车辆结构等限制及列车移动授权所获取的最严格的速度限制。",
+        "。列车在车辆段/停车场内运行时应具有车组号的跟踪、显示功能</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td>-</td></tr><tr><td rowspan=\"3\">50</td><td rowspan=\"3\">列车进路办理</td><td>列车进路办理——自动。ATS系统应该具有列车自动办理进路的功能。ATS系统依照列车运行图/时刻表、在线列车运行信息、车站联锁表自动设置发车进路,指挥在线列车运行</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td>-</td></tr><tr><td>列车进路办理——人工、ATS系统应该具有手动办理进路的功能</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td colspan=\"1\">-</td></tr><tr><td>列车进路办理——冲突检查、当列车运行偏离计划,不同运行交路的列车经过同一地点时,系统应能检测到列车计划冲突,并提示调度员采取列车计划冲突干预方案</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td colspan=\"1\">-</td></tr><tr><td rowspan=\"3\">51</td><td rowspan=\"3\">列车自动调整</td><td>自动调度。ATS系统可包括自动调度功能</td><td>-</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td></tr><tr><td>列车时刻表/发车(运行)间隔调整。ATS系统可具有监视与自动调整的功能。</td><td>-</td><td>✓</td><td>✓</td><td>✓</td><td colspan=\"1\">✓</td></tr><tr><td>冲突自动调整。在CBTC列车位置报告的基础上,ATS系统应包括基于列车位置报告的列车自动调整功能,来处理列车冲突,以把整个系统的延迟减少到最小</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td colspan=\"1\">✓</td></tr><tr><td>52</td><td>节能运行</td><td>节能运行",
+        ". It encompasses ATO and ATP.</td></tr><tr><td>Automatic Train Operation</td><td>ATO</td><td>A system that automatically operates the train's driving controls</td></tr><tr><td>Automatic Train Protection</td><td>ATP</td><td>A safety system that enforces either compliance with or observation of speed restrictions and/or signal aspects by trains.</td></tr><tr><td>Automatic Train Supervision</td><td>ATS</td><td>A non-safety system (common on metros) which regulates a train service, typically to maintain intended traffic patterns and to minimise the effects of train delays on the operating schedule.</td></tr><tr><td>Automatic Route Setting</td><td>ARS</td><td>A system for setting routes without the action of the signaller (signal operator).</td></tr><tr><td>Automatic signal</td><td></td><td>A signal controlled by the passage of trains. It does not require any action by the signaller (signal operator) or ARS"
+      ],
+      "retrieved_file_names": [
+        "T_CAMET 04010.1-2018-城市轨道交通 基于通信的列车运行控制系统(CBTC)互联互通系统规范 第1部分 系统总体要求.md",
+        "CZJST 0029—2015城市轨道交通CBTC信号系统-ATO子系统规范.md",
+        "CZJST 0028—2015城市轨道交通CBTC信号系统-ATP子系统规范.md",
+        "T_CAMET 04012.2-2018-城市轨道交通 基于通信的列车运行控制系统(CBTC)互联互通测试规范第2部分-点式部分测试及验证.md",
+        "4_Glossary of Train Control Terminology v1.2.md"
+      ],
+      "answer": "根据提供的上下文信息，我无法找到该问题的准确答案。"
+    },
+    {
+      "question": "在 CBTC 互联互通规范体系中，关于列车启动、加速、巡航和制动的自动控制功能，其在《系统总体要求》中的分配归属于哪个子系统？并在《CBTC 部分测试及验证》中体现在哪个功能的测试中，测试需求编号是什么？",
+      "retrieved_contexts": [
+        "# 1 范围  \nT/CAMET04012的本部分规定了基于通信的列车运行控制系统(CBTC)互联互通其CBTC部分功能验证测试以及接口验证测试。  \n本部分适用于满足互联互通要求的CBTC系统其CBTC部分验证测试应包含的各个阶段，按照阶段定义和互联互通需求特点对需求验证进行分配，并作为后续互联互通测试案例编写的依据，对案例的编写具有指导作用。",
+        "# 1 范围  \nT/CAMET04010的本部分规定了基于通信的列车运行控制系统(CBTC)互联互通系统规范中的系统总体要求，主要包括功能要求、构成要求、性能要求和设计文件要求。  \n本部分适用于国内采用基于通信的列车运行控制（CBTC）系统的新建、更新改造及扩建的城市轨道交通线路建设，用于指导信号系统的系统设计、产品设计、设备招标、工程建设。",
+        "Abstract: Performance and functional requirements for a communications-based train control (CBTC) system are established in this standard. A CBTC system is a continuous, automatic train control system utilizing high-resolution train location determination, independent of track circuits; continuous, high-capacity, bidirectional train-to-wayside data communications; and train-borne and wayside processors capable of implementing automatic train protection (ATP) functions, as well as optional automatic train operation (ATO) and automatic train supervision (ATS) functions. In addition to CBTC functional requirements, this standard also defines headway criteria, system safety criteria, and system availability criteria for a CBTC system. This standard is applicable to the full range of transit applications including automated people movers",
+        "。CBTC系统应确定每辆CBTC列车的实际运行方向</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td>-</td></tr><tr><td>21</td><td>列车运行方向防护</td><td>监督/防护运行方向。如果列车实际运行方向与授权的列车运行方向不一致,CBTC应实施紧急制动</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td>-</td></tr><tr><td>22</td><td>退行防护</td><td>退行防护。ATP车载设备应具有退行防护功能,以满足列车定位的需求。当退行距离和退行速度超过允许值时,系统应立即采取紧急制动。在列车退行过程中,系统应对追踪运行的列车提供安全间隔防护</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td></tr><tr><td>23</td><td>越过移动授权终点防护</td><td>越过移动授权终点的响应。列车越过移动授权终点时,系统应实施紧急制动</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td>-</td></tr><tr><td>24</td><td>移动授权更新超时防护</td><td>移动授权更新超时的防护。移动授权更新超时,系统应实施紧急制动</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td>-</td></tr><tr><td>25</td><td>紧急制动缓解</td><td>紧急制动缓解。在保证安全的条件下,系统可以缓解已施加的紧急制动</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td></tr><tr><td>26</td><td>车门允许</td><td>CBTC在开车门之前,应满足下列条件:1)列车“正确对齐”在一个指定的停止点,停止点偏差在允许范围内;2)开门侧与站台一致;3)列车零速;</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td></tr></table>",
+        "Approved 2 February 2005  \nAmerican National Standards Institute  \nApproved 23 September 2004  \nIEEE-SA Standards Board  \nAbstract: Performance and functional requirements for a communications-based train control (CBTC) system are established in this standard. A CBTC system is a continuous, automatic train control system utilizing high-resolution train location determination, independent of track circuits; continuous, high-capacity, bidirectional train-to-wayside data communications; and train-borne and wayside processors capable of implementing automatic train protection (ATP) functions, as well as optional automatic train operation (ATO) and automatic train supervision (ATS) functions. In addition to CBTC functional requirements, this standard also defines headway criteria, system safety criteria, and system availability criteria for a CBTC system. This standard is applicable to the full range of transit applications including automated people movers."
+      ],
+      "retrieved_file_names": [
+        "T_CAMET 04012.1-2018-城市轨道交通 基于通信的列车运行控制系统(CBTC)互联互通测试规范第l部分-CBTC部分测试及验证.md",
+        "T_CAMET 04010.1-2018-城市轨道交通 基于通信的列车运行控制系统(CBTC)互联互通系统规范 第1部分 系统总体要求.md",
+        "IEEE Std 1474.1-2025 IEEE Standard for Communications-Based Train Control (CBTC) Performance and Functional Requirements.md",
+        "IEEE 1474.1-2004.md"
+      ],
+      "answer": "在CBTC互联互通规范体系中，关于列车启动、加速、巡航和制动的自动控制功能，其在《系统总体要求》中归属于**自动列车操作（ATO）**子系统。在《CBTC部分测试及验证》中，这些功能体现在**自动列车操作（ATO）功能的测试**中，但根据提供的上下文信息，未明确给出具体的测试需求编号。"
+    },
+    {
+      "question": "ERTMS/ETCS 列车牵引系统数据定义演变：比较 SUBSET-026 Baseline 3 (v3.4.0) 和 Baseline 4 (v4.0.0) 版本中 Validated Train Data (Packet 11) 的内容定义：1）请指出该数据包中用于表示牵引系统标识的变量名称？2）当该变量不为零时，需要包含哪些额外的牵引数据变量？",
+      "retrieved_contexts": [
+        ".4.3.5 Packet Number 11: Validated train data</td><td>x</td><td>x</td><td></td><td></td><td></td></tr><tr><td>7.4.3.6 Packet Number 44: Data used by applications outside the ERTMS/ETCS system</td><td>x</td><td>x</td><td></td><td></td><td></td></tr><tr><td>7.4.4</td><td></td><td></td><td></td><td></td><td>x</td></tr><tr><td>7.5</td><td></td><td></td><td></td><td>x</td><td></td></tr><tr><td>7.5.0.1 A_NVMAXREDADH1</td><td>x</td><td>x</td><td></td><td></td><td></td></tr><tr><td>7.5.0.2 A_NVMAXREDAH2</td><td>x</td><td>x</td><td></td><td></td><td></td></tr><tr><td>7.5.0.3 A_NVMAXREDAH3</td><td>x</td><td>x</td><td></td><td></td><td></td></tr><tr><td>7.5.0.4 A_NVP12</td><td>x</td><td>x</td><td></td><td></td><td></td></tr><tr><td>7.5.0.5 A_NVP23</td><td>x</td><td>x</td><td></td><td></td><td></td></tr><tr><td>7.5.1.1 D_ADHESION</td><td>x</td><td>x</td><td></td><td></td><td></td></tr><tr><td>7.5.1.2 D_AXLELOAD</td><td>x</td><td>x</td><td></td><td></td><td></td></tr><tr><td>7.5.1.2",
+        "# 5.17.2.2 Procedure  \n<table><tr><td>ID #</td><td>Requirements</td></tr><tr><td>S0</td><td>The ERTMS/ETCS on-board equipment is in one of the following modes: FS, LS, OS, SR, SB, SN, UN, TR, PT and valid Train Data is stored on-board. If a change of input information, which affects Train Data, is detected on an ERTMS/ETCS on-board external interface (E0), the process shall go to D0</td></tr><tr><td>D0</td><td>According to the specific train implementation, Train Data which is/are affected by the change of input information from the ERTMS/ETCS on-board equipment external interface may require validation:\n• If the affected data requires driver validation, the process shall go to D2\n• If the affected data does not require driver validation, the process shall go to D1</td></tr><tr><td>D1</td><td>Depending on the type of Train Data which is/are affected by the change of input information from the ERTMS/ETCS on-board external interface, the following shall apply:",
+        "# 3.18.3 Train Data  \n3.18.3.1 Train Data can neither be provided nor modified by ERTMS/ETCS trackside equipment.\n3.18.3.2 Before starting a mission, the Train Data shall be acquired by the ERTMS/ETCS on-board equipment of a leading engine  \na) Train category(ies)\nb) Train length  \nc) Traction / brake parameters:  \n- Traction model\n- Braking models (brake build up time and speed dependent deceleration) or brake percentage\n- Brake position\n- On-board correction factors\nNominal rotating mass  \nd) Maximum train speed\ne) Loading gauge\nf) Axle load category\ng) Traction system(s) accepted by the engine\nh) Train fitted with airtight system\ni) List of National Systems available on-board\nj) Intentionally deleted\nk) Axle number  \n3.18.3.2.1 The Train Data may come from ERTMS/ETCS external sources (e.g. the Train Interface), from pre-configured values or from the driver.",
+        "# 5.17.1 Introduction  \n5.17.1.1 When valid Train Data is stored on-board, input information acquired from ERTMS/ETCS external sources different from the driver may affect some of the Train",
+        "3.18.3.5 Intentionally deleted.\n3.18.3.6 For modification of Train Data, which is/are affected by a change of input information from the ERTMS/ETCS on-board equipment external interface, refer to procedure \"Changing Train Data from sources different from the driver\" described in section 5.17.\n3.18.3.7 In case the Train Data regarding train category, axle load category, loading gauge or traction system has been changed and the train is at standstill:  \na) the location based information stored on-board shall be shortened to the current position of the train. Refer to appendix A.3.4 for the exhaustive list of information, which shall be shortened.\nb) the stored MA, linking and track description, which have been received from the RBC after a level 2/3 transition or a RBC transition for a further location has been ordered, shall be deleted."
+      ],
+      "retrieved_file_names": [
+        "Baseline3-r2_subset-026_v360(2).md",
+        "Baseline3-r2_subset-026_v360.md",
+        "Baseline3-mr1_subset-026_v340.md"
+      ],
+      "answer": "1. 数据包11中用于表示牵引系统标识的变量名称是**A_NVSYS**。\n\n2. 当该变量不为零时，需要包含的额外牵引数据变量包括：\n   - Traction model（牵引模型）\n   - Braking models（制动模型）\n     - Brake build up time（制动建立时间）\n     - Speed dependent deceleration（速度依赖的减速）或 brake percentage（制动百分比）\n   - Brake position（制动位置）\n   - On-board correction factors（ onboard correction factors）\n   - Nominal rotating mass（Nominal rotating mass）"
+    }
+  ]
+}
+
+结果已保存到: /data/home/likejie/kasike_RAG/output/output_20251122_142421.json
