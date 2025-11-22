@@ -771,13 +771,27 @@ print(len(result["source_documents"]))
 
 ## Version History
 
-- **v1.0** (Current): Initial implementation with vLLM, OpenAI, Ollama support
+- **v1.1** (2025-11-22): Retrieval accuracy improvements
+  - **Critical Fix**: Resolved `available_files=0` issue when loading from existing vectorstore
+    - Modified `_extract_available_files()` in retrieval.py to extract filenames from vectorstore metadata when `self.documents` is empty
+    - Automatically strips legacy "MinerU_" prefix from filenames for compatibility
+  - **Optimization**: Improved regex-based file name extraction
+    - Removed misleading entity patterns (company names, location names)
+    - Enhanced standard number detection (IEEE, GB/T, ISO, SUBSET, T/CAMET)
+    - Added document type keyword extraction for better file matching
+  - **Configuration**: Already optimized for multi-language documents
+    - Embedding model: BAAI/bge-m3 (best for Chinese/English/German混合)
+    - Chunk size: 500 characters (optimized for precision)
+    - Retrieval: MMR with k=5, fetch_k=15 for balanced coverage
+  - **Impact**: LLM-driven file selection now functional, improved retrieval precision
+
+- **v1.0**: Initial implementation with vLLM, OpenAI, Ollama support
   - Knowledge graph integration
   - Multi-language support
   - Interactive and batch modes
 
 ---
 
-**Last Updated**: 2024-01-20
+**Last Updated**: 2025-11-22
 **Maintained By**: Project Team
 **For Questions**: Review this document first, then check logs, then ask maintainers

@@ -415,33 +415,44 @@ class Retriever:
             return []
 
     def _extract_file_names_regex(self, query: str) -> List[str]:
-        """使用正则提取文件名（增强版 - 包含组织名称）"""
+        """使用正则提取文件名关键词（优化版 - 减少误导性实体提取）"""
         file_names = []
 
-        # 1. 标准编号（最重要）
-        for pattern in [r'(IEEE\s*[\d.]+)', r'(GB/T\s*\d+)', r'(ISO\s*\d+)', r'(IEC\s*\d+)', r'(SUBSET[-\s]*\d+)']:
+        # 1. 标准编号（优先级最高 - 文件名中最常见）
+        standard_patterns = [
+            r'(IEEE\s*Std\s*[\d.]+[-\d]*)',  # IEEE Std 1474.1-2025
+            r'(IEEE\s*[\d.]+)',               # IEEE 1474.1
+            r'(GB[/T]*\s*\d+[-—.]*\d*)',     # GB/T 43267-2023, GB/T 43267
+            r'(ISO\s*\d+)',                   # ISO 26262
+            r'(IEC\s*\d+)',                   # IEC 62278
+            r'(SUBSET[-\s]*\d+)',             # SUBSET-026
+            r'(T[/_]CAMET\s*\d+\.\d+)',       # T/CAMET 04011.1
+        ]
+        for pattern in standard_patterns:
             file_names.extend(re.findall(pattern, query, re.IGNORECASE))
 
-        # 2. 书名号内容
+        # 2. 书名号内容（明确引用）
         file_names.extend(re.findall(r'《([^》]{3,50})》', query))
 
-        # 3. 关键组织/机构名称（新增）
-        org_patterns = [
-            r'(UIC)',  # 国际铁路联盟
-            r'(欧洲铁路局)',
-            r'(ERA)',
-            r'(株洲中车[\u4e00-\u9fa5]{2,20}公司)',  # 株洲中车相关公司
-            r'(中车[\u4e00-\u9fa5]{2,20})',  # 中车系列
-            r'([^\s，。]{2,8}地铁)',  # XX地铁
-            r'([^\s，。]{2,6}车站)',  # XX车站
+        # 3. 文档类型关键词（只提取核心文档名，不提取实体名）
+        # "在XXX报告里" → 提取"XXX报告"
+        doc_patterns = [
+            r'(?:在|根据)([^\s，。]{3,25}?(?:报告|文件|文档|规范|标准|指南))(?:里|中|的)?',  # 在XXX报告中
+            r'([^\s，。]{3,25}?(?:SPD|spd)\s*\d{4}[-–]\d{4})',  # ERA SPD 2025-2027
+            r'([^\s，。]{3,25}?work\s+programme\s*\d{4}[-–]\d{4})',  # UIC work programme 2023-2025
         ]
-        for pattern in org_patterns:
+        for pattern in doc_patterns:
             matches = re.findall(pattern, query, re.IGNORECASE)
             file_names.extend(matches)
 
-        # 4. "在...报告"模式
-        file_names.extend(re.findall(r'在(.{3,25}?)(?:报告|文档|文件)(?:里|中)', query))
-        file_names.extend(re.findall(r'根据(.{3,25}?)(?:报告|文档|文件)', query))
+        # 4. 关键组织缩写（仅限明确的文档来源标识）
+        org_acronyms = [
+            r'\b(UIC)\b',  # 国际铁路联盟（通常出现在文件名中）
+            r'\b(ERA)\b',  # 欧洲铁路局
+        ]
+        for pattern in org_acronyms:
+            matches = re.findall(pattern, query, re.IGNORECASE)
+            file_names.extend(matches)
 
         # 5. 年份_英文名或年份-年份
         file_names.extend(re.findall(r'(\d{4}[_-][A-Za-z][\w\-\s]{5,35})', query))
