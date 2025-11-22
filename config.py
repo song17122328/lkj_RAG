@@ -162,6 +162,7 @@ ADVANCED_FEATURES = {
     "reranking": True,  # Cross-Encoder重排序 - 强烈推荐开启
     "reranking_top_k": 20,  # 重排序前先检索的文档数
     "reranker_model": "BAAI/bge-reranker-base",  # Cross-Encoder模型（用于精准重排序）
+    "multipath_retrieval": True,  # 多路检索（文件引导+全库） - 强烈推荐开启以提升召回率
     "query_expansion": False,  # 查询扩展（可能增加延迟）
     "feedback_loop": False,  # 反馈循环
     "multi_modal": False,  # 多模态支持

@@ -16,11 +16,13 @@ import hashlib
 
 try:
     from langchain.schema import Document
+    from langchain.vectorstores import Chroma
 except ImportError:  # pragma: no cover - 环境缺少langchain时的兜底
     @dataclass
     class Document:
         page_content: str
         metadata: Optional[Dict[str, Any]] = None
+    Chroma = None
 
 # 配置文件
 try:
@@ -74,6 +76,7 @@ class Retriever:
         self.hybrid_weight = self.config.get("hybrid_weight", 0.3)
         self.use_reranking = self.config.get("reranking", False)
         self.reranking_top_k = self.config.get("reranking_top_k", 20)
+        self.use_multipath = self.config.get("multipath_retrieval", False)
 
         # 去重和多样性参数
         self.similarity_threshold = 0.9  # 内容相似度阈值
@@ -106,7 +109,8 @@ class Retriever:
         self.available_files = self._extract_available_files()
 
         logger.info(f"检索器初始化: hybrid={self.use_hybrid}, "
-                    f"reranking={self.use_reranking}, k={k}, llm={'可用' if llm else '不可用'}, "
+                    f"reranking={self.use_reranking}, multipath={self.use_multipath}, "
+                    f"k={k}, llm={'可用' if llm else '不可用'}, "
                     f"可用文件数={len(self.available_files)}, "
                     f"reranker={'Cross-Encoder' if self.reranker else '简单'}, "
                     f"bm25={'可用' if self.bm25 else '不可用'}")
@@ -152,30 +156,138 @@ class Retriever:
         return sorted(list(files))
 
     def retrieve(self, query: str, k: Optional[int] = None) -> List[Document]:
-        """执行检索并返回文档列表"""
+        """
+        执行检索并返回文档列表
+
+        根据配置自动选择检索策略：
+        - 多路检索（multipath=True）: 文件引导路径 + 全库路径，提升召回率
+        - 单路检索（multipath=False）: 仅全库检索，传统方式
+        """
         if k is None:
             k = self.k
 
-        retrieve_k = self.reranking_top_k if self.use_reranking else k * 3
+        # 根据配置选择检索策略
+        if self.use_multipath:
+            # 使用多路检索策略
+            return self.retrieve_multipath(query, k)
+        else:
+            # 使用传统单路检索
+            retrieve_k = self.reranking_top_k if self.use_reranking else k * 3
 
+            if self.use_hybrid:
+                docs = self.hybrid_search(query, keyword_weight=self.hybrid_weight, k=retrieve_k)
+            else:
+                docs = self._semantic_search(query, k=retrieve_k)
+
+            # 文件名匹配优化（在去重之前，确保匹配文档优先）
+            docs = self._boost_file_name_matches(query, docs)
+
+            docs = self._deduplicate_documents(docs)
+            docs = self._ensure_diversity(docs, min_docs=k)
+
+            if self.use_reranking and len(docs) > k:
+                docs = self._simple_rerank(query, docs, top_k=k)
+            else:
+                docs = docs[:k]
+
+            logger.info(f"单路检索完成: 候选={retrieve_k}, 去重后={len(docs)}, 返回={len(docs[:k])}")
+            return docs
+
+    def retrieve_multipath(self, query: str, k: Optional[int] = None) -> List[Document]:
+        """
+        多路检索策略 - 平衡精确性和召回率
+
+        路径1（文件引导路径）: LLM选择文件 → 筛选文档子集 → 在子集中检索
+        路径2（广域路径）: 全库语义/混合检索
+
+        合并 → 去重 → Cross-Encoder重排序 → 返回top-k
+
+        这种策略能够：
+        - 保留对技术问题的精确性（路径1针对性检索）
+        - 确保对广域问题的召回率（路径2全库覆盖）
+        - 通过Cross-Encoder统一评估两路结果的质量
+
+        Args:
+            query: 用户查询
+            k: 返回文档数量，默认使用self.k
+
+        Returns:
+            检索到的文档列表
+        """
+        if k is None:
+            k = self.k
+
+        # 提取文件名（用于路径1）
+        extracted_files = self._extract_file_names(query)
+
+        # === 路径1：文件引导检索（精确路径） ===
+        path1_docs = []
+        path1_count = 0
+
+        if extracted_files:
+            # 筛选：只保留匹配文件的documents
+            filtered_docs = []
+            for doc in self.documents:
+                source = doc.metadata.get('source', '')
+                if any(self._fuzzy_match(fname, source) for fname in extracted_files):
+                    filtered_docs.append(doc)
+
+            path1_count = len(filtered_docs)
+
+            if filtered_docs:
+                # 在筛选后的子集中创建临时vectorstore并检索
+                try:
+                    # 创建临时vectorstore（使用相同的embedding函数）
+                    temp_vectorstore = Chroma.from_documents(
+                        documents=filtered_docs,
+                        embedding=self.vectorstore._embedding_function
+                    )
+
+                    # 在子集中检索（检索更多候选，为后续reranking准备）
+                    path1_docs = temp_vectorstore.similarity_search(query, k=k*2)
+                    logger.info(f"路径1（文件引导）: 筛选={path1_count}个文档, 召回={len(path1_docs)}个chunks")
+
+                except Exception as e:
+                    logger.warning(f"路径1检索失败: {e}，跳过文件引导路径")
+                    path1_docs = []
+            else:
+                logger.info(f"路径1（文件引导）: 提取了{len(extracted_files)}个文件名，但未匹配到文档")
+        else:
+            logger.info("路径1（文件引导）: 未提取到文件名，跳过")
+
+        # === 路径2：全库检索（广域路径） ===
+        # 使用现有的混合检索或语义检索
         if self.use_hybrid:
-            docs = self.hybrid_search(query, keyword_weight=self.hybrid_weight, k=retrieve_k)
+            path2_docs = self.hybrid_search(query, keyword_weight=self.hybrid_weight, k=k*2)
         else:
-            docs = self._semantic_search(query, k=retrieve_k)
+            path2_docs = self._semantic_search(query, k=k*2)
 
-        # 文件名匹配优化（在去重之前，确保匹配文档优先）
-        docs = self._boost_file_name_matches(query, docs)
+        logger.info(f"路径2（全库）: 召回={len(path2_docs)}个chunks")
 
-        docs = self._deduplicate_documents(docs)
-        docs = self._ensure_diversity(docs, min_docs=k)
+        # === 合并两路结果 ===
+        combined_docs = path1_docs + path2_docs
 
-        if self.use_reranking and len(docs) > k:
-            docs = self._simple_rerank(query, docs, top_k=k)
+        # 去重（基于内容哈希）
+        combined_docs = self._deduplicate_documents(combined_docs)
+
+        # 确保多样性
+        combined_docs = self._ensure_diversity(combined_docs, min_docs=k)
+
+        # === Cross-Encoder重排序（关键步骤） ===
+        # 让Cross-Encoder评估所有候选文档，选出真正相关的top-k
+        if self.use_reranking and self.reranker and len(combined_docs) > k:
+            combined_docs = self._simple_rerank(query, combined_docs, top_k=k)
+            logger.info(f"多路检索: Cross-Encoder重排序完成，从{len(combined_docs)}个候选中选出{k}个")
         else:
-            docs = docs[:k]
+            # 如果没有reranker，简单截断（但这样效果会差很多）
+            combined_docs = combined_docs[:k]
+            if not self.reranker:
+                logger.warning("多路检索未启用Cross-Encoder，建议启用reranking以获得最佳效果")
 
-        logger.info(f"检索完成: 候选={retrieve_k}, 去重后={len(docs)}, 返回={len(docs[:k])}")
-        return docs
+        logger.info(f"多路检索完成: 路径1={len(path1_docs)}, 路径2={len(path2_docs)}, "
+                    f"合并去重={len(combined_docs)}, 最终返回={len(combined_docs[:k])}")
+
+        return combined_docs
 
     def _semantic_search(self, query: str, k: int) -> List[Document]:
         return self.vectorstore.similarity_search(query, k=k)
