@@ -87,20 +87,43 @@ def main():
     
     output = {"items": items}
     print(json.dumps(output, ensure_ascii=False, indent=2))
-    
-    # 保存JSON文件到output目录
+
+    # 保存完整JSON文件到output目录
     output_dir = Path(__file__).resolve().parent / "output"
     output_dir.mkdir(exist_ok=True)
-    
+
     # 生成带时间戳的文件名
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     output_file = output_dir / f"output_{timestamp}.json"
-    
-    # 保存JSON文件
+
+    # 保存完整JSON文件
     with open(output_file, 'w', encoding='utf-8') as f:
         json.dump(output, f, ensure_ascii=False, indent=2)
-    
-    print(f"\n结果已保存到: {output_file}")
+
+    print(f"\n完整结果已保存到: {output_file}")
+
+    # 创建不带retrieved_file_names字段的简化版输出
+    simplified_items = []
+    for item in items:
+        simplified_items.append({
+            "question": item["question"],
+            "retrieved_contexts": item["retrieved_contexts"],
+            "answer": item["answer"]
+        })
+
+    simplified_output = {"items": simplified_items}
+
+    # 保存简化版JSON文件到output_answer目录
+    output_answer_dir = Path(__file__).resolve().parent / "output_answer"
+    output_answer_dir.mkdir(exist_ok=True)
+
+    output_answer_file = output_answer_dir / f"output_{timestamp}.json"
+
+    # 保存简化版JSON文件
+    with open(output_answer_file, 'w', encoding='utf-8') as f:
+        json.dump(simplified_output, f, ensure_ascii=False, indent=2)
+
+    print(f"简化版结果已保存到: {output_answer_file}")
     
     # 启动交互式问答
     # pipeline.interactive_qa()
