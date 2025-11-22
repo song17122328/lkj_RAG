@@ -55,8 +55,8 @@ EMBEDDING_CONFIG = {
 
 # 文本分割配置
 TEXT_SPLITTING = {
-    "chunk_size": 500,  # 块大小（字符数）- 减小以提高精确匹配（专业术语、数字等）
-    "chunk_overlap": 100,  # 块重叠（字符数）- 保持上下文连续性
+    "chunk_size": 800,  # 块大小（字符数）- P2优化：增加到800以减少关键句子被分割的概率
+    "chunk_overlap": 200,  # 块重叠（字符数）- P2优化：增加到200确保上下文连续性
     "separators": ["\n\n", "\n", "。", "！", "？", ".", "!", "?", " ", ""],
     "length_function": len,
 }
@@ -127,10 +127,10 @@ VECTOR_STORE = {
 
 RETRIEVAL = {
     "search_type": "mmr",  # 使用 MMR (Maximum Marginal Relevance) 平衡相关性和多样性
-    "k": 8,  # 返回的文档数 - 增加到8个以提升数值推理问题的召回率
+    "k": 10,  # 返回的文档数 - P1优化：增加到10个以提升数值推理问题的召回率
     "score_threshold": 0.5,  # 相似度阈值 - 提高到0.5，只保留高相关文档
-    "fetch_k": 30,  # MMR的初始获取数 - 增加到30个候选，提高召回率
-    "lambda_mult": 0.7,  # MMR的相关性参数（0.5-1.0，0.7平衡相关性和多样性，有助于召回不同角度的信息）
+    "fetch_k": 50,  # MMR的初始获取数 - P1优化：增加到50个候选，显著提高召回率
+    "lambda_mult": 0.6,  # MMR的相关性参数 - P1优化：降至0.6更注重多样性，召回不同角度的信息
 }
 
 # ==================== 问答链配置 ====================
@@ -203,10 +203,11 @@ PATHS = {
 
 ADVANCED_FEATURES = {
     "hybrid_search": True,  # 混合搜索（BM25关键词+语义）- 推荐开启
-    "hybrid_weight": 0.3,  # 关键词搜索权重（0-1）
+    "hybrid_weight": 0.4,  # 关键词搜索权重（0-1）- P1优化：增加到0.4，BM25对精确词汇（如"8%"、"S7号线"）效果更好
     "reranking": True,  # Cross-Encoder重排序 - 强烈推荐开启
-    "reranking_top_k": 20,  # 重排序前先检索的文档数
-    "reranker_model": "BAAI/bge-reranker-base",  # Cross-Encoder模型（用于精准重排序）
+    "reranking_top_k": 30,  # 重排序前先检索的文档数 - P1优化：增加到30个候选
+    "reranker_model": "BAAI/bge-reranker-v2-m3",  # P1优化：升级到v2多语言模型，更精准
+    "reranker_threshold": 0.3,  # P1优化：新增重排序阈值，过滤低分文档（0.3表示保留相关性>30%的文档）
     "multipath_retrieval": True,  # 多路检索（文件引导+全库） - 强烈推荐开启以提升召回率
     "query_expansion": False,  # 查询扩展（可能增加延迟）
     "feedback_loop": False,  # 反馈循环

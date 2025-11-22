@@ -76,6 +76,7 @@ class Retriever:
         self.hybrid_weight = self.config.get("hybrid_weight", 0.3)
         self.use_reranking = self.config.get("reranking", False)
         self.reranking_top_k = self.config.get("reranking_top_k", 20)
+        self.reranker_threshold = self.config.get("reranker_threshold", None)  # P1优化：重排序阈值
         self.use_multipath = self.config.get("multipath_retrieval", False)
 
         # 去重和多样性参数
@@ -824,7 +825,13 @@ class Retriever:
                 scored_docs = list(zip(docs, scores))
                 scored_docs.sort(key=lambda x: x[1], reverse=True)
 
-                logger.debug(f"Cross-Encoder重排序: {len(docs)}个文档 -> 前{top_k}个")
+                # P1优化：如果设置了阈值，过滤低分文档
+                if self.reranker_threshold is not None:
+                    original_count = len(scored_docs)
+                    scored_docs = [(doc, score) for doc, score in scored_docs if score >= self.reranker_threshold]
+                    logger.debug(f"Cross-Encoder阈值过滤: {original_count}个文档 -> {len(scored_docs)}个 (阈值={self.reranker_threshold})")
+
+                logger.debug(f"Cross-Encoder重排序: {len(docs)}个文档 -> 前{min(top_k, len(scored_docs))}个")
                 return [doc for doc, _ in scored_docs[:top_k]]
             except Exception as e:
                 logger.warning(f"Cross-Encoder重排序失败: {e}，降级到简单重排序")
