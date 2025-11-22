@@ -197,6 +197,49 @@ class RAGSystem:
         """加载并处理Markdown文档（结构感知切分 + 表格提取 + 数值/地理增强）"""
         logger.info("加载文档到RAG系统（使用Markdown结构感知切分 + 表格提取 + 数值/地理增强）...")
 
+        # 检查是否启用并行处理
+        from config import SYSTEM
+        enable_parallel = SYSTEM.get("enable_parallel_processing", True)
+        max_workers = SYSTEM.get("max_workers", 4)
+
+        if enable_parallel and len(markdown_contents) > 1:
+            # === 并行处理模式 ===
+            try:
+                from parallel_processor import ParallelDocumentProcessor
+
+                # 准备配置
+                text_splitter_config = {
+                    'chunk_size': self.text_splitter._chunk_size,
+                    'chunk_overlap': self.text_splitter._chunk_overlap,
+                    'separators': self.text_splitter._separators,
+                }
+
+                markdown_splitter_config = {
+                    'headers_to_split_on': self.markdown_splitter.headers_to_split_on,
+                    'strip_headers': self.markdown_splitter.strip_headers,
+                }
+
+                # 创建并行处理器
+                processor = ParallelDocumentProcessor(
+                    text_splitter_config=text_splitter_config,
+                    markdown_splitter_config=markdown_splitter_config,
+                    n_workers=max_workers,
+                    use_enhancement=True
+                )
+
+                # 并行处理所有文档
+                self.documents = processor.process_documents(markdown_contents)
+
+                logger.info(f"并行处理完成，共 {len(self.documents)} 个chunks")
+                return
+
+            except Exception as e:
+                logger.warning(f"并行处理失败: {e}，降级到串行处理")
+                # 继续执行下面的串行处理逻辑
+
+        # === 串行处理模式（fallback或单文档） ===
+        logger.info("使用串行处理模式...")
+
         # 导入增强模块
         try:
             from table_extractor import TableExtractor
