@@ -194,15 +194,41 @@ class RAGSystem:
         )
     
     def load_and_process_documents(self, markdown_contents: Dict[str, str]):
-        """加载并处理Markdown文档（结构感知切分）"""
-        logger.info("加载文档到RAG系统（使用Markdown结构感知切分）...")
+        """加载并处理Markdown文档（结构感知切分 + 表格提取 + 数值/地理增强）"""
+        logger.info("加载文档到RAG系统（使用Markdown结构感知切分 + 表格提取 + 数值/地理增强）...")
+
+        # 导入增强模块
+        try:
+            from table_extractor import TableExtractor
+            from numerical_enricher import NumericalDataEnricher
+            from geographical_tagger import GeographicalTagger
+
+            table_extractor = TableExtractor()
+            numerical_enricher = NumericalDataEnricher()
+            geographical_tagger = GeographicalTagger()
+
+            use_enhancement = True
+            logger.info("启用表格提取、数值增强和地理标注功能")
+        except ImportError as e:
+            logger.warning(f"增强模块导入失败: {e}，将使用标准处理流程")
+            use_enhancement = False
 
         for doc_name, content in markdown_contents.items():
             if not content:
                 continue
 
-            # 步骤1: 使用MarkdownHeaderTextSplitter按章节标题分割
-            # 这会保留标题层级作为元数据（Header 1, Header 2等）
+            # === 阶段1: 表格提取（如果启用） ===
+            table_documents = []
+            if use_enhancement:
+                try:
+                    # 提取所有表格为独立的Documents
+                    table_documents = table_extractor.extract_tables_from_markdown(content, doc_name)
+                    logger.debug(f"{doc_name}: 提取了 {len(table_documents)} 个表格")
+                except Exception as e:
+                    logger.warning(f"表格提取失败({doc_name}): {e}")
+                    table_documents = []
+
+            # === 阶段2: 文本分割（Markdown结构感知） ===
             try:
                 md_header_splits = self.markdown_splitter.split_text(content)
 
@@ -210,7 +236,7 @@ class RAGSystem:
                 for split in md_header_splits:
                     split.metadata["source"] = doc_name
 
-                # 步骤2: 对于仍然较大的chunk，使用RecursiveCharacterTextSplitter进一步分割
+                # 步骤3: 对于仍然较大的chunk，使用RecursiveCharacterTextSplitter进一步分割
                 # 这确保了每个chunk不会超过chunk_size，同时保留了header元数据
                 final_chunks = []
                 for md_doc in md_header_splits:
@@ -224,7 +250,6 @@ class RAGSystem:
                     else:
                         final_chunks.append(md_doc)
 
-                self.documents.extend(final_chunks)
                 logger.debug(f"{doc_name}: {len(md_header_splits)}个章节 -> {len(final_chunks)}个chunks")
 
             except Exception as e:
@@ -234,10 +259,46 @@ class RAGSystem:
                     page_content=content,
                     metadata={"source": doc_name}
                 )
-                chunks = self.text_splitter.split_documents([doc])
-                self.documents.extend(chunks)
+                final_chunks = self.text_splitter.split_documents([doc])
 
-        logger.info(f"文档处理完成，共 {len(self.documents)} 个chunks（含章节结构元数据）")
+            # === 阶段4: 数值和地理信息增强（如果启用） ===
+            if use_enhancement:
+                enhanced_chunks = []
+                for chunk in final_chunks:
+                    try:
+                        # 数值增强
+                        enriched_text, enriched_metadata = numerical_enricher.enrich_text(
+                            chunk.page_content,
+                            chunk.metadata
+                        )
+
+                        # 地理标注
+                        enriched_metadata = geographical_tagger.extract_geographical_info(
+                            chunk.page_content,
+                            enriched_metadata
+                        )
+
+                        # 创建增强后的Document
+                        enhanced_chunk = Document(
+                            page_content=enriched_text,
+                            metadata=enriched_metadata
+                        )
+                        enhanced_chunks.append(enhanced_chunk)
+
+                    except Exception as e:
+                        logger.warning(f"增强失败: {e}，保留原chunk")
+                        enhanced_chunks.append(chunk)
+
+                final_chunks = enhanced_chunks
+
+            # === 阶段5: 合并所有chunks（文本 + 表格） ===
+            self.documents.extend(final_chunks)
+            self.documents.extend(table_documents)
+
+            total_chunks = len(final_chunks) + len(table_documents)
+            logger.debug(f"{doc_name}: 总计 {total_chunks} chunks (文本={len(final_chunks)}, 表格={len(table_documents)})")
+
+        logger.info(f"文档处理完成，共 {len(self.documents)} 个chunks（含章节结构元数据、表格、数值和地理标注）")
     
     def create_vector_store(self, persist_directory: str = "./vectorstore"):
         """创建向量存储"""

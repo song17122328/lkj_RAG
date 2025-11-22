@@ -61,6 +61,42 @@ TEXT_SPLITTING = {
     "length_function": len,
 }
 
+# 文档增强配置（表格提取、数值标注、地理标注）
+DOCUMENT_ENHANCEMENT = {
+    "enabled": True,  # 是否启用文档增强功能
+
+    # 表格提取配置
+    "table_extraction": {
+        "enabled": True,  # 是否提取表格
+        "min_rows": 2,  # 最小行数（包含表头）
+        "min_cols": 2,  # 最小列数
+        "max_rows_to_describe": 50,  # 最多描述的行数（避免chunk过大）
+    },
+
+    # 数值数据增强配置
+    "numerical_enrichment": {
+        "enabled": True,  # 是否标注数值数据
+        "extract_types": [  # 提取的数值类型
+            "percentage",  # 百分比
+            "currency",  # 货币
+            "distance",  # 距离/里程
+            "time",  # 时间
+            "count",  # 数量
+            "ratio",  # 比率/倍数
+        ],
+        "add_summary": True,  # 是否在chunk前添加数值摘要
+    },
+
+    # 地理信息标注配置
+    "geographical_tagging": {
+        "enabled": True,  # 是否标注地理信息
+        "use_spacy": True,  # 是否使用spaCy NER（需要已安装spaCy）
+        "extract_provinces": True,  # 提取省份信息
+        "extract_cities": True,  # 提取城市信息
+        "identify_scope": True,  # 识别地理范围（国家/省级/市级）
+    },
+}
+
 # ==================== 知识图谱配置 ====================
 
 KNOWLEDGE_GRAPH = {
