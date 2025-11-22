@@ -20,7 +20,7 @@ except ImportError:
     ADVANCED_FEATURES = {}
 
 # LangChain核心组件
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.text_splitter import RecursiveCharacterTextSplitter, MarkdownHeaderTextSplitter
 from langchain.embeddings import OpenAIEmbeddings, HuggingFaceEmbeddings
 from langchain.vectorstores import Chroma
 from langchain.chains import RetrievalQA
@@ -173,6 +173,19 @@ class RAGSystem:
             self.llm = None
         
         # 初始化文本分割器
+        # 结构感知的Markdown分割器 - 保留章节标题作为元数据
+        headers_to_split_on = [
+            ("#", "Header 1"),
+            ("##", "Header 2"),
+            ("###", "Header 3"),
+            ("####", "Header 4"),
+        ]
+        self.markdown_splitter = MarkdownHeaderTextSplitter(
+            headers_to_split_on=headers_to_split_on,
+            strip_headers=False  # 保留标题在内容中
+        )
+
+        # 通用字符分割器（用于进一步切分大块）
         self.text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=1000,
             chunk_overlap=200,
@@ -181,24 +194,50 @@ class RAGSystem:
         )
     
     def load_and_process_documents(self, markdown_contents: Dict[str, str]):
-        """加载并处理Markdown文档"""
-        logger.info("加载文档到RAG系统...")
-        
+        """加载并处理Markdown文档（结构感知切分）"""
+        logger.info("加载文档到RAG系统（使用Markdown结构感知切分）...")
+
         for doc_name, content in markdown_contents.items():
             if not content:
                 continue
-                
-            # 创建文档对象
-            doc = Document(
-                page_content=content,
-                metadata={"source": doc_name}
-            )
-            
-            # 分割文档
-            chunks = self.text_splitter.split_documents([doc])
-            self.documents.extend(chunks)
-        
-        logger.info(f"文档处理完成，共 {len(self.documents)} 个chunks")
+
+            # 步骤1: 使用MarkdownHeaderTextSplitter按章节标题分割
+            # 这会保留标题层级作为元数据（Header 1, Header 2等）
+            try:
+                md_header_splits = self.markdown_splitter.split_text(content)
+
+                # 为每个分割添加source元数据
+                for split in md_header_splits:
+                    split.metadata["source"] = doc_name
+
+                # 步骤2: 对于仍然较大的chunk，使用RecursiveCharacterTextSplitter进一步分割
+                # 这确保了每个chunk不会超过chunk_size，同时保留了header元数据
+                final_chunks = []
+                for md_doc in md_header_splits:
+                    # 如果chunk大小超过限制，进一步分割
+                    if len(md_doc.page_content) > 1000:
+                        sub_chunks = self.text_splitter.split_documents([md_doc])
+                        # 保留原有的header元数据
+                        for chunk in sub_chunks:
+                            chunk.metadata.update(md_doc.metadata)
+                        final_chunks.extend(sub_chunks)
+                    else:
+                        final_chunks.append(md_doc)
+
+                self.documents.extend(final_chunks)
+                logger.debug(f"{doc_name}: {len(md_header_splits)}个章节 -> {len(final_chunks)}个chunks")
+
+            except Exception as e:
+                # 如果Markdown分割失败，降级到普通字符分割
+                logger.warning(f"Markdown结构分割失败({doc_name}): {e}，降级到字符分割")
+                doc = Document(
+                    page_content=content,
+                    metadata={"source": doc_name}
+                )
+                chunks = self.text_splitter.split_documents([doc])
+                self.documents.extend(chunks)
+
+        logger.info(f"文档处理完成，共 {len(self.documents)} 个chunks（含章节结构元数据）")
     
     def create_vector_store(self, persist_directory: str = "./vectorstore"):
         """创建向量存储"""

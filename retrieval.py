@@ -2,9 +2,9 @@
 RAG 检索模块（唯一实现）
 
 特性：
-- 语义检索 + 关键词检索混合策略
+- 语义检索 + BM25关键词检索混合策略
+- 跨编码器（Cross-Encoder）重排序，提升相关性精度
 - 基于内容的去重与多样性控制，减少重复段落
-- 可选的简单重排序，提升相关性
 """
 
 from typing import List, Dict, Optional, Any
@@ -27,6 +27,22 @@ try:
     from config import ADVANCED_FEATURES
 except ImportError:
     ADVANCED_FEATURES = {"hybrid_search": False, "reranking": False}
+
+# 尝试导入reranker
+try:
+    from sentence_transformers import CrossEncoder
+    CROSS_ENCODER_AVAILABLE = True
+except ImportError:
+    CROSS_ENCODER_AVAILABLE = False
+    CrossEncoder = None
+
+# 尝试导入BM25
+try:
+    from rank_bm25 import BM25Okapi
+    BM25_AVAILABLE = True
+except ImportError:
+    BM25_AVAILABLE = False
+    BM25Okapi = None
 
 logger = logging.getLogger(__name__)
 
@@ -63,12 +79,37 @@ class Retriever:
         self.similarity_threshold = 0.9  # 内容相似度阈值
         self.diversity_threshold = 0.3   # 多样性阈值
 
+        # 初始化Cross-Encoder reranker（如果可用且启用）
+        self.reranker = None
+        if self.use_reranking and CROSS_ENCODER_AVAILABLE:
+            try:
+                reranker_model = self.config.get("reranker_model", "BAAI/bge-reranker-base")
+                self.reranker = CrossEncoder(reranker_model, max_length=512)
+                logger.info(f"已加载Cross-Encoder reranker: {reranker_model}")
+            except Exception as e:
+                logger.warning(f"无法加载Cross-Encoder reranker: {e}，将使用简单重排序")
+                self.reranker = None
+
+        # 初始化BM25索引（如果使用混合搜索且BM25可用）
+        self.bm25 = None
+        if self.use_hybrid and BM25_AVAILABLE and self.documents:
+            try:
+                # 为每个文档创建token列表
+                tokenized_docs = [doc.page_content.split() for doc in self.documents]
+                self.bm25 = BM25Okapi(tokenized_docs)
+                logger.info(f"已构建BM25索引，文档数={len(self.documents)}")
+            except Exception as e:
+                logger.warning(f"无法构建BM25索引: {e}，将使用简单关键词搜索")
+                self.bm25 = None
+
         # 提取并缓存所有可用的文件名（用于LLM选择）
         self.available_files = self._extract_available_files()
 
         logger.info(f"检索器初始化: hybrid={self.use_hybrid}, "
                     f"reranking={self.use_reranking}, k={k}, llm={'可用' if llm else '不可用'}, "
-                    f"可用文件数={len(self.available_files)}")
+                    f"可用文件数={len(self.available_files)}, "
+                    f"reranker={'Cross-Encoder' if self.reranker else '简单'}, "
+                    f"bm25={'可用' if self.bm25 else '不可用'}")
 
     def _extract_available_files(self) -> List[str]:
         """提取所有可用的文件名（去重）"""
@@ -160,7 +201,25 @@ class Retriever:
         return merged_docs
 
     def _keyword_search(self, query: str, k: int) -> List[tuple]:
-        """关键词检索（支持中文及特殊标识符）"""
+        """关键词检索：优先使用BM25，降级到简单关键词匹配"""
+        # 如果有BM25索引，使用它
+        if self.bm25 and self.documents:
+            try:
+                # 分词查询
+                tokenized_query = query.split()
+                # 获取BM25分数
+                scores = self.bm25.get_scores(tokenized_query)
+                # 创建(doc, score)对并排序
+                scored_docs = list(zip(self.documents, scores))
+                scored_docs.sort(key=lambda x: x[1], reverse=True)
+                # 只返回得分>0的文档
+                scored_docs = [(doc, score) for doc, score in scored_docs if score > 0]
+                logger.debug(f"BM25关键词搜索: 找到{len(scored_docs)}个相关文档")
+                return scored_docs[:k]
+            except Exception as e:
+                logger.warning(f"BM25搜索失败: {e}，降级到简单关键词匹配")
+
+        # 降级：简单关键词匹配
         keywords = self._extract_keywords(query)
         if not keywords:
             return []
@@ -177,6 +236,7 @@ class Retriever:
                 scored_docs.append((doc, score))
 
         scored_docs.sort(key=lambda x: x[1], reverse=True)
+        logger.debug(f"简单关键词搜索: 找到{len(scored_docs)}个相关文档")
         return scored_docs[:k]
 
     def _extract_keywords(self, query: str) -> List[str]:
@@ -625,7 +685,29 @@ class Retriever:
         return (matched_docs + unmatched_docs) if matched_docs else docs
 
     def _simple_rerank(self, query: str, docs: List[Document], top_k: int) -> List[Document]:
-        """基于关键词重叠的重排序"""
+        """重排序：优先使用Cross-Encoder，降级到关键词重叠"""
+        if not docs:
+            return docs
+
+        # 如果有Cross-Encoder reranker，使用它
+        if self.reranker:
+            try:
+                # 准备query-document对
+                pairs = [[query, doc.page_content[:512]] for doc in docs]
+
+                # 计算相关性分数
+                scores = self.reranker.predict(pairs)
+
+                # 按分数排序
+                scored_docs = list(zip(docs, scores))
+                scored_docs.sort(key=lambda x: x[1], reverse=True)
+
+                logger.debug(f"Cross-Encoder重排序: {len(docs)}个文档 -> 前{top_k}个")
+                return [doc for doc, _ in scored_docs[:top_k]]
+            except Exception as e:
+                logger.warning(f"Cross-Encoder重排序失败: {e}，降级到简单重排序")
+
+        # 降级：基于关键词重叠的重排序
         query_keywords = set(self._extract_keywords(query))
         if not query_keywords:
             return docs[:top_k]
@@ -643,6 +725,7 @@ class Retriever:
             scored_docs.append((doc, similarity))
 
         scored_docs.sort(key=lambda x: x[1], reverse=True)
+        logger.debug(f"简单重排序: {len(docs)}个文档 -> 前{top_k}个")
         return [doc for doc, _ in scored_docs[:top_k]]
 
 
